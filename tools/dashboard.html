@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>TeamForge — Live Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0d1117; color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+    overflow: hidden;
+    user-select: none;
+  }
+  body { display: flex; flex-direction: column; }
+
+  header.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    height: 50px; flex-shrink: 0;
+  }
+  header.topbar .title { font-weight: 700; font-size: 16px; color: #f0f6fc; }
+  header.topbar .stats { display: flex; gap: 20px; font-size: 12px; color: #8b949e; }
+  header.topbar .stats span strong { color: #c9d1d9; font-weight: 600; }
+  header.topbar .ws { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  header.topbar .ws.connected { background: #1f6feb33; color: #58a6ff; }
+  header.topbar .ws.disconnected { background: #f8514933; color: #ff7b72; }
+  header.topbar .controls { display: flex; gap: 6px; flex-wrap: wrap; }
+  header.topbar .controls button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+  }
+  header.topbar .controls button:hover { background: #30363d; }
+  header.topbar .controls button.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+
+  main {
+    display: grid;
+    grid-template-columns: var(--sidebar-w, 320px) 6px 1fr;
+    flex: 1; overflow: hidden;
+    padding: 8px 8px 0 8px;
+  }
+  main.feed-hidden { grid-template-columns: 0 0 1fr; padding-left: 0; }
+  main.feed-hidden .sidebar,
+  main.feed-hidden .splitter { display: none; }
+  .splitter { cursor: ew-resize; border-left: 1px solid #30363d; border-right: 1px solid #30363d; }
+  .splitter:hover, .splitter.dragging { background: #1f6feb44; }
+
+  /* Sidebar gizliyken sol kenarda kucuk "feed'i show" subject */
+  #show-feed-tab {
+    position: fixed; left: 0; top: 60%;
+    transform: translateY(-50%);
+    background: #1f6feb; color: #fff; border: none;
+    padding: 12px 6px; border-radius: 0 6px 6px 0;
+    cursor: pointer; font-size: 11px; font-weight: 600;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    box-shadow: 2px 0 8px #00000088;
+    z-index: 50; display: none;
+  }
+  #show-feed-tab:hover { background: #388bfd; }
+  body.feed-hidden #show-feed-tab { display: block; }
+
+  .sidebar {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    overflow: hidden; display: flex; flex-direction: column; margin-right: 4px;
+  }
+  .sidebar h2 {
+    margin: 0; padding: 10px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8b949e; font-weight: 600;
+    border-bottom: 1px solid #30363d; background: #0d1117;
+  }
+  #feed {
+    flex: 1; overflow-y: auto; padding: 4px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px; user-select: text;
+  }
+  .ev { padding: 3px 6px; border-radius: 3px; line-height: 1.45; margin: 1px 0; }
+  .ev:hover { background: #21262d; }
+  .ev .ts { color: #6e7681; font-size: 10px; }
+  .ev .role { font-weight: 600; }
+  .ev .text-snippet { color: #c9d1d9; }
+  .ev .tool-snippet { color: #8b949e; font-style: italic; }
+  .ev.enter { color: #3fb950; font-size: 10px; opacity: 0.8; }
+  .ev.exit { color: #6e7681; font-size: 10px; opacity: 0.6; }
+
+  .feed-controls {
+    padding: 4px 8px; border-top: 1px solid #30363d;
+    display: flex; gap: 4px; background: #0d1117;
+  }
+  .feed-controls button {
+    flex: 1; background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    padding: 3px 6px; border-radius: 3px; cursor: pointer; font-size: 10px;
+  }
+
+  .agent-canvas-wrap {
+    margin-left: 4px; overflow: auto;
+    background: #0a0e14; border: 1px solid #30363d; border-radius: 8px;
+    position: relative;
+  }
+  #agent-canvas {
+    position: relative; width: 100%; height: auto;
+    min-height: 700px;
+    /* min-width none — wrap genisligine uyar; sutun sayisi dynamic (panel basi 472px). */
+  }
+
+  .agent-panel {
+    position: absolute;
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    overflow: hidden; display: flex; flex-direction: column;
+    border-top: 3px solid var(--c, #30363d);
+    transition: opacity 0.2s, box-shadow 0.15s;
+    min-width: 280px; min-height: 200px;
+  }
+  .agent-panel.idle { opacity: 0.6; }
+  .agent-panel.idle:hover { opacity: 1; }
+  .agent-panel.empty { opacity: 0.4; }
+  .agent-panel.dragging { box-shadow: 0 4px 16px #00000088; opacity: 0.8; }
+  .agent-panel.pinned { box-shadow: inset 0 0 0 1px #ffd33d44; }
+  .agent-panel.focused { z-index: 100; box-shadow: 0 0 0 2px #1f6feb88; }
+
+  .agent-panel header {
+    background: transparent; border-bottom: 1px solid #30363d;
+    padding: 8px 12px; height: auto;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: move; gap: 6px;
+  }
+  .agent-panel .role-name { font-weight: 600; font-size: 13px; color: var(--c, #f0f6fc); }
+  .agent-panel .role-meta { font-size: 10px; color: #6e7681; margin-top: 1px; }
+  .agent-panel .right-controls { display: flex; align-items: center; gap: 6px; }
+  .agent-panel .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 4px;
+    background: #30363d; color: #8b949e;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .agent-panel.working .badge { background: var(--c, #1f6feb); color: #0d1117; }
+  .agent-panel.idle .badge { background: #21262d; color: #6e7681; }
+
+  .pin-btn, .close-btn {
+    background: transparent; color: #6e7681; border: 1px solid #30363d;
+    padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;
+    font-weight: 600;
+  }
+  .pin-btn:hover { color: #c9d1d9; border-color: #58606b; }
+  .close-btn:hover { color: #ff7b72; border-color: #ff7b7266; }
+  .agent-panel.pinned .pin-btn { color: #ffd33d; border-color: #ffd33d66; background: #ffd33d11; }
+
+  .agent-body {
+    flex: 1; overflow-y: auto; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: var(--body-font-size, 12px); user-select: text;
+  }
+  .agent-body .msg.text { font-size: var(--body-font-size, 12px); }
+  .agent-body .msg.tool { font-size: calc(var(--body-font-size, 12px) - 1px); }
+  .font-btn {
+    background: transparent; color: #6e7681; border: 1px solid #30363d;
+    padding: 1px 5px; border-radius: 4px; cursor: pointer;
+    font-size: 10px; font-weight: 700; line-height: 1;
+    min-width: 18px;
+  }
+  .font-btn:hover { color: #c9d1d9; border-color: #58606b; }
+  .agent-body .empty-state {
+    color: #6e7681; font-size: 11px; padding: 16px;
+    text-align: center; font-style: italic;
+  }
+
+  .resize-handle {
+    position: absolute; bottom: 0; right: 0;
+    width: 16px; height: 16px; cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, #58606b 50%, #58606b 60%, transparent 60%, transparent 70%, #58606b 70%, #58606b 80%, transparent 80%);
+    opacity: 0.5; z-index: 10;
+  }
+  .resize-handle:hover { opacity: 1; }
+
+  .msg { border-radius: 6px; padding: 6px 10px; line-height: 1.5; border-left: 2px solid transparent; }
+  .msg.text {
+    background: #0d1117; border-left-color: var(--c, #58a6ff);
+    white-space: pre-wrap; word-break: break-word; font-size: 12px; color: #e6edf3;
+  }
+  .msg.text code { background: #21262d; color: #d2a8ff; padding: 1px 4px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 11px; }
+  .msg.text pre { background: #0a0e14; color: #d2a8ff; padding: 8px 10px; border-radius: 4px; overflow-x: auto; font-family: ui-monospace, monospace; font-size: 11px; margin: 4px 0; white-space: pre; }
+  .msg.text strong { color: #f0f6fc; font-weight: 600; }
+  .msg.text em { color: #8b949e; font-style: italic; }
+  .msg.tool { background: #161b22; border-left-color: #d2a8ff; font-family: ui-monospace, monospace; font-size: 11px; }
+  .msg.tool .tname { color: #d2a8ff; font-weight: 600; }
+  .msg.tool .targs { color: #8b949e; margin-top: 3px; white-space: pre-wrap; word-break: break-all; max-height: 100px; overflow-y: auto; }
+  .msg.tool .targs.collapsed { max-height: 0; overflow: hidden; margin-top: 0; }
+  .msg.tool .targs-toggle { color: #6e7681; font-size: 10px; cursor: pointer; margin-top: 2px; display: inline-block; }
+  .msg.enter, .msg.exit { background: transparent; color: #6e7681; font-size: 10px; text-align: center; padding: 2px 0; font-style: italic; }
+  .msg .ts { color: #6e7681; font-size: 9px; margin-bottom: 2px; font-family: ui-monospace, monospace; }
+
+  .chatbar {
+    background: #161b22; border-top: 1px solid #30363d;
+    padding: 10px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .chatbar .label { color: #bc8cff; font-weight: 600; font-size: 13px; }
+  .chatbar input {
+    flex: 1; background: #0d1117; color: #c9d1d9;
+    border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px;
+    font-size: 13px; font-family: inherit;
+  }
+  .chatbar input:focus { outline: none; border-color: #1f6feb; }
+  .chatbar button { background: #238636; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .chatbar button:hover { background: #2ea043; }
+  .chatbar button:disabled { background: #21262d; color: #6e7681; }
+  .chatbar .status { font-size: 11px; color: #6e7681; min-width: 80px; }
+  .chatbar .status.ok { color: #3fb950; }
+  .chatbar .status.err { color: #ff7b72; }
+
+  /* Analytics modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: #00000088; z-index: 9999;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+    width: min(90vw, 880px); max-height: 88vh; overflow-y: auto;
+    user-select: text;  /* body inherit'i ezer — user JSON'u secebilsin */
+  }
+  .modal pre, .modal code, .modal td, .modal th { user-select: text; }
+  .copy-btn {
+    background: #21262d; color: #58a6ff; border: 1px solid #30363d;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 10px;
+    margin-left: 8px;
+  }
+  .copy-btn:hover { background: #30363d; color: #79c0ff; }
+  .copy-btn.ok { color: #3fb950; border-color: #3fb95066; }
+  .modal header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid #30363d;
+  }
+  .modal .body { padding: 18px; }
+  .a-card {
+    background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px;
+  }
+  .a-card .label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+  .a-card .value { font-size: 22px; font-weight: 700; color: #f0f6fc; margin-top: 4px; }
+  .a-card .sub { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .a-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .a-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .a-bar-chart {
+    display: flex; align-items: flex-end; gap: 2px;
+    height: 80px; background: #0d1117; border: 1px solid #30363d;
+    border-radius: 6px; padding: 8px;
+  }
+  .a-bar { flex: 1; background: #1f6feb; border-radius: 2px 2px 0 0; cursor: help; }
+  .a-table { width: 100%; font-size: 11px; color: #c9d1d9; border-collapse: collapse; }
+  .a-table th { text-align: left; padding: 6px 4px; color: #8b949e; font-weight: 600; border-bottom: 1px solid #30363d; }
+  .a-table td { padding: 6px 4px; border-bottom: 1px solid #21262d; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #58606b; }
+
+  .viz-block { background: #0a0e14; border: 1px solid #30363d; border-radius: 6px;
+               padding: 10px 12px; margin: 6px 0; }
+  .chart-block { height: 300px; }
+  .viz-error { color: #ff7b72; font-size: 11px; }
+  .md-table { border-collapse: collapse; width: 100%; margin: 6px 0; font-size: 11px; }
+  .md-table th, .md-table td { border: 1px solid #30363d; padding: 4px 8px; text-align: left; }
+  .md-table th { background: #21262d; color: #f0f6fc; font-weight: 600; }
+  .md-table tr:nth-child(even) { background: #161b22; }
+  .kpi-title { font-weight: 600; color: #f0f6fc; margin-bottom: 6px; font-size: 12px; }
+  .kpi-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kpi-card { background: #161b22; border-left: 3px solid #8b949e; border-radius: 4px;
+              padding: 8px 12px; min-width: 120px; flex: 1; }
+  .kpi-label { color: #8b949e; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi-value { color: #f0f6fc; font-size: 18px; font-weight: 600; margin: 2px 0; }
+  .kpi-change { font-size: 11px; }
+  .agent-body h2 { font-size: 14px; margin: 8px 0 4px; color: #f0f6fc; }
+  .agent-body h3 { font-size: 12px; margin: 6px 0 3px; color: #c9d1d9; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>if (window.mermaid) mermaid.initialize({startOnLoad:false, theme:'dark'});</script>
+</head>
+<body>
+
+<!-- TeamForge setup wizard overlay (first acilista gozukur) -->
+<div id="setup-overlay" style="display:none; position:fixed; inset:0; background:#0d1117; z-index:10000; overflow-y:auto; user-select:text;">
+  <div style="max-width:760px; margin:60px auto; padding:32px; background:#161b22; border:1px solid #30363d; border-radius:12px;">
+    <div style="margin-bottom:24px;">
+      <h1 style="margin:0 0 8px; color:#f0f6fc; font-size:24px;">TeamForge Setup</h1>
+      <p style="color:#8b949e; margin:0;">Which turn proje on calisacaksin? A few cumleyle anlat — Claude to you uyday agent teamini and teknoloji yiginini recommendecek.</p>
+    </div>
+
+    <div id="setup-step-1">
+      <label style="display:block; color:#c9d1d9; font-size:13px; margin-bottom:6px;">Project description</label>
+      <textarea id="setup-description" rows="5" placeholder="Example 1: B2B SaaS — team management platform, web + API, GDPR compliant, Stripe integration.&#10;Example 2: Mobile health app, iOS + Android, HIPAA, targeting 10K users.&#10;Example 3: E-commerce marketplace, web + admin panel, COD + card, TR market."
+        style="width:100%; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:10px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+      <div style="margin-top:6px; color:#6e7681; font-size:11px;">What until somut yazarsan agent teami o until on-point happens. Typical: 50-200 words.</div>
+
+      <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+        <span id="setup-status" style="color:#8b949e; font-size:11px; flex:1;"></span>
+        <button id="setup-generate-btn" style="background:#238636; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">Generate Team</button>
+      </div>
+    </div>
+
+    <div id="setup-step-2" style="display:none;">
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:16px; margin-bottom:16px;">
+        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:4px;">Project</div>
+        <div id="setup-preview-project" style="color:#f0f6fc; font-size:14px;"></div>
+      </div>
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:16px; margin-bottom:16px;">
+        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:4px;">Teknoloji stack</div>
+        <div id="setup-preview-tech" style="color:#c9d1d9; font-size:12px; line-height:1.6;"></div>
+      </div>
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:16px; margin-bottom:16px;">
+        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:8px;">Recommendilen agent teami</div>
+        <div id="setup-preview-roles"></div>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button id="setup-back-btn" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d; padding:10px 20px; border-radius:6px; font-size:13px; cursor:pointer;">Back</button>
+        <button id="setup-save-btn" style="background:#238636; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;">Approve and install</button>
+      </div>
+    </div>
+
+    <div id="setup-step-3" style="display:none; text-align:center;">
+      <div style="font-size:48px;">OK</div>
+      <h2 style="color:#3fb950; margin:8px 0;">Setup complete</h2>
+      <p style="color:#8b949e;">Orchestrator'i again start (Ctrl+C, next <code>python -m orchestrator</code>). Your agent team is ready.</p>
+      <button onclick="window.location.reload()" style="background:#1f6feb; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; margin-top:16px;">Dashboard'a git</button>
+    </div>
+  </div>
+</div>
+
+
+<header class="topbar">
+  <div class="title">TeamForge <span style="color:#8b949e;font-weight:400;font-size:13px">— Live Dashboard</span></div>
+  <div class="stats">
+    <span title="TeamForge local ledger (manual entries)">Local: <strong id="budget">—</strong></span>
+    <span title="Anthropic API real spend (TeamForgeWorkspace workspace, last 30 day)">Real: <strong id="real-cost">—</strong></span>
+    <span>Active: <strong id="active-count">—</strong></span>
+    <span>Tasks: <strong id="task-count">—</strong></span>
+    <span class="ws disconnected" id="ws-status">disconnected</span>
+  </div>
+  <div class="controls">
+    <button id="filter-active">Active</button>
+    <button id="filter-all" class="active">All Agents</button>
+    <button id="filter-leadership">Leadership</button>
+    <button id="filter-workers">Workers</button>
+    <button id="show-analytics" title="Anthropic API usage and cost">Analytics</button>
+    <button id="toggle-feed" title="Toggle live feed panel">Hide Feed</button>
+    <button id="auto-tile" title="Auto-arrange panels into grid">Auto-tile</button>
+    <button id="reset-layout" title="Reset all layouts and pins">Reset</button>
+  </div>
+</header>
+<button id="show-feed-tab" title="Show live feed panel">FEED</button>
+
+<main>
+  <div class="sidebar">
+    <h2>Live Stream</h2>
+    <div id="feed"></div>
+    <div class="feed-controls">
+      <button id="autoscroll-btn">v Auto-scroll: ON</button>
+      <button id="clear-btn">Clear</button>
+    </div>
+  </div>
+  <div class="splitter" id="splitter"></div>
+  <div class="agent-canvas-wrap"><div id="agent-canvas"></div></div>
+</main>
+
+<div class="chatbar">
+  <select id="chat-target" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:8px 10px;font-size:13px;">
+    <option value="ceo" selected>CEO</option>
+    <option value="cfo">CFO</option>
+  </select>
+  <span class="label" id="chat-label">&gt;</span>
+  <input id="chat-input" type="text" placeholder="Message CEO... (Enter to send)" autocomplete="off">
+  <button id="chat-send">Send</button>
+  <span class="status" id="chat-status">ready</span>
+</div>
+
+<div class="modal-overlay" id="analytics-modal">
+  <div class="modal">
+    <header>
+      <div>
+        <div style="font-weight:700;font-size:16px;color:#f0f6fc;">Anthropic Console — Usage & Cost</div>
+        <div style="font-size:11px;color:#8b949e;margin-top:2px;" id="analytics-meta">—</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <select id="analytics-days" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;">
+          <option value="7">Last 7 day</option>
+          <option value="14">Last 14 day</option>
+          <option value="30" selected>Last 30 day</option>
+          <option value="60">Last 60 day</option>
+          <option value="90">Last 90 day</option>
+        </select>
+        <button id="analytics-refresh" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Refresh</button>
+        <button id="analytics-workspaces" title="Admin key which org/workspace'leri goruyor — org mismatch diagnosisi" style="background:#21262d;color:#f78166;border:1px solid #f78166;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Workspaces (Debug)</button>
+        <button id="analytics-close" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">Close</button>
+      </div>
+    </header>
+    <div class="body" id="analytics-body">
+      <div style="color:#8b949e;font-style:italic;">Loadniyor...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLE_COLORS = {
+  ceo: "#bc8cff", cfo: "#a371f7", project_manager: "#58a6ff", business_analyst: "#39d0d8",
+  tech_lead: "#f78166",
+  android_dev: "#56d364", ios_dev: "#56d364", frontend_dev: "#56d364", backend_dev: "#56d364",
+  uiux_dev: "#ffd33d", mobile_tester: "#ff7b72", tester: "#ff7b72",
+  marketing_sales_specialist: "#ffa657",
+  devops_engineer: "#7ee787",
+};
+const ROLE_LABELS = {
+  ceo: "CEO", cfo: "CFO", project_manager: "Projectct Manager", business_analyst: "Business Analyst",
+  tech_lead: "Tech Lead",
+  android_dev: "Android Dev", ios_dev: "iOS Dev", frontend_dev: "Frontend Dev",
+  backend_dev: "Backend Dev", uiux_dev: "UI/UX Designer",
+  mobile_tester: "Mobilee QA", tester: "Web/API QA",
+  marketing_sales_specialist: "Marketing & Sales",
+  devops_engineer: "DevOps Engineer",
+};
+const LEADERSHIP = ["ceo", "cfo", "project_manager", "business_analyst", "tech_lead"];
+const WORKERS = ["android_dev", "ios_dev", "uiux_dev", "frontend_dev",
+                 "backend_dev", "mobile_tester", "tester",
+                 "marketing_sales_specialist", "devops_engineer"];
+const ALL_ROLES = [...LEADERSHIP, ...WORKERS];
+
+const PREFS_KEY = "teamforge_dashboard_prefs_v5";
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+    return {
+      panels: p.panels || {}, pinned: Array.isArray(p.pinned) ? p.pinned : [],
+      filter: p.filter || "all", sidebarW: p.sidebarW || 320,
+      hidden: Array.isArray(p.hidden) ? p.hidden : [],
+      feedHidden: !!p.feedHidden,
+    };
+  } catch (e) { return { panels: {}, pinned: [], filter: "all", sidebarW: 320, hidden: [], feedHidden: false }; }
+}
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      panels: panelLayout, pinned: Array.from(pinnedRoles),
+      filter, sidebarW, hidden: Array.from(hiddenRoles),
+      feedHidden,
+    }));
+  } catch (e) {}
+}
+
+let prefs = loadPrefs();
+let panelLayout = prefs.panels;
+const pinnedRoles = new Set(prefs.pinned);
+const hiddenRoles = new Set(prefs.hidden);
+let filter = prefs.filter;
+let sidebarW = prefs.sidebarW;
+let feedHidden = prefs.feedHidden;
+let autoscroll = true;
+let zCounter = 1;
+
+const agentState = {};
+ALL_ROLES.forEach(r => agentState[r] = {
+  status: "idle", caller: null, last_at: null,
+  messages: [], has_history: false,
+});
+
+function fmtTs(epoch) { if (!epoch) return "—"; return new Date(epoch * 1000).toTimeString().slice(0, 8); }
+function escHtml(s) { return String(s).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"})[c]); }
+function fmtNum(n) {
+  n = Number(n) || 0;
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return String(Math.round(n));
+}
+function fmtUsd(n) { return "$" + Number(n || 0).toFixed(4); }
+
+function renderMarkdown(text) {
+  if (!text) return "";
+  // Before viz blok'larini placeholder ile place tut
+  const vizBlocks = [];
+  text = text.replace(/```(chart-bar|chart-line|chart-pie|kpi-grid|mermaid)\n([\s\S]*?)```/g, (_, kind, body) => {
+    const idx = vizBlocks.length;
+    vizBlocks.push({kind, body: body.trim()});
+    return `\u0001VIZ${idx}\u0001`;
+  });
+  // Tablo (markdown) — | col | col | lines
+  text = text.replace(/(^\|.+\|\n\|[-:| ]+\|(?:\n\|.+\|)*)/gm, (m) => {
+    const lines = m.trim().split("\n");
+    const headers = lines[0].split("|").slice(1, -1).map(s => s.trim());
+    const rows = lines.slice(2).map(r => r.split("|").slice(1, -1).map(s => s.trim()));
+    let html = '<table class="md-table"><thead><tr>';
+    headers.forEach(h => html += `<th>${escHtml(h)}</th>`);
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+      html += '<tr>';
+      row.forEach(c => html += `<td>${escHtml(c)}</td>`);
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    return `\u0002TBL${html}\u0003`;
+  });
+  let s = escHtml(text);
+  // Tablo placeholder'larini back yerlestir
+  s = s.replace(/\u0002TBL(.*?)\u0003/gs, (_, h) => h.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&"));
+  // Code/inline/bold/italic
+  s = s.replace(/```([\s\S]*?)```/g, (_, code) => `<pre>${code}</pre>`);
+  s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*([^*]|$)/g, "$1<em>$2</em>$3");
+  s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  // Viz placeholder'larini real widget'a convert
+  s = s.replace(/\u0001VIZ(\d+)\u0001/g, (_, i) => renderVizBlock(vizBlocks[Number(i)]));
+  return s;
+}
+
+function renderVizBlock(blk) {
+  if (!blk) return "";
+  const id = "viz-" + Math.random().toString(36).slice(2, 9);
+  try {
+    if (blk.kind === "mermaid") {
+      // Mermaid: defer rendering until DOM insertion
+      const src = escHtml(blk.body);
+      setTimeout(() => {
+        if (window.mermaid) {
+          const el = document.getElementById(id);
+          if (el) {
+            el.removeAttribute("data-processed");
+            mermaid.run({nodes: [el]}).catch(e => console.error("mermaid:", e));
+          }
+        }
+      }, 50);
+      return `<div class="viz-block"><pre class="mermaid" id="${id}">${blk.body}</pre></div>`;
+    }
+    const cfg = JSON.parse(blk.body);
+    if (blk.kind === "kpi-grid") {
+      let html = `<div class="viz-block"><div class="kpi-title">${escHtml(cfg.title || "")}</div><div class="kpi-grid">`;
+      (cfg.items || []).forEach(it => {
+        const trend = (it.trend || "flat").toLowerCase();
+        const color = trend === "up" ? "#3fb950" : trend === "down" ? "#ff7b72" : "#8b949e";
+        const change = it.change_pct;
+        const changeStr = (typeof change === "number") ? (change >= 0 ? "+" : "") + change.toFixed(1) + "%" : (change || "");
+        html += `<div class="kpi-card" style="border-left-color:${color}">
+          <div class="kpi-label">${escHtml(it.label || "")}</div>
+          <div class="kpi-value">${escHtml(String(it.value ?? ""))}</div>
+          <div class="kpi-change" style="color:${color}">${escHtml(changeStr)}</div></div>`;
+      });
+      return html + "</div></div>";
+    }
+    // chart-bar / chart-line: Chart.js canvas
+    const palette = ["#1f6feb","#3fb950","#ff7b72","#d2a8ff","#56d364","#f78166"];
+    let datasets;
+    if (blk.kind === "chart-line") {
+      datasets = (cfg.datasets || []).map((d, i) => ({
+        label: d.name || `S${i+1}`, data: d.values || [],
+        borderColor: palette[i % palette.length],
+        backgroundColor: palette[i % palette.length] + "33",
+        borderWidth: 2, tension: 0.3,
+      }));
+    } else {
+      datasets = [{
+        label: cfg.y_label || "Value", data: cfg.values || [],
+        backgroundColor: palette[0], borderColor: palette[0], borderWidth: 1,
+      }];
+    }
+    const chartType = blk.kind === "chart-line" ? "line" : "bar";
+    setTimeout(() => {
+      if (window.Chart && document.getElementById(id)) {
+        new Chart(document.getElementById(id), {
+          type: chartType,
+          data: { labels: cfg.labels || [], datasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { title: { display: !!cfg.title, text: cfg.title || "", color: "#c9d1d9" },
+                       legend: { labels: { color: "#c9d1d9" } } },
+            scales: {
+              x: { ticks: { color: "#8b949e" }, grid: { color: "#30363d" }, title: { display: !!cfg.x_label, text: cfg.x_label, color: "#8b949e" } },
+              y: { ticks: { color: "#8b949e" }, grid: { color: "#30363d" }, title: { display: !!cfg.y_label, text: cfg.y_label, color: "#8b949e" } },
+            },
+          },
+        });
+      }
+    }, 60);
+    return `<div class="viz-block chart-block"><canvas id="${id}" style="max-height:280px"></canvas></div>`;
+  } catch (e) {
+    return `<div class="viz-block viz-error">Viz render error: ${escHtml(String(e))}<br><pre>${escHtml(blk.body || "")}</pre></div>`;
+  }
+}
+
+// Panel size — sabit 3 sutun, width pencereye gore max
+const FIXED_COLS = 3;
+const PANEL_GAP = 12;
+const PANEL_MIN_W = 320;        // 1024px'lik narrow pencerede bile minimum
+const PANEL_MAX_W = 720;        // ultrawide'da many wide olmasin (okunaklik)
+const PANEL_H = 320;            // height sabit
+const ROW_STEP = PANEL_H + PANEL_GAP;
+
+function getDynamicCols() {
+  return FIXED_COLS;
+}
+function getDynamicPanelW() {
+  // Canvas wrap genisligini al, 3'e bol — gap'leri dusurerek max panel genisligi
+  const wrap = document.querySelector(".agent-canvas-wrap");
+  const w = wrap ? wrap.clientWidth : window.innerWidth - 360;
+  // Padding (16) + 3 sutun + 2 gap between
+  const usable = w - 16 - (FIXED_COLS - 1) * PANEL_GAP;
+  let panelW = Math.floor(usable / FIXED_COLS);
+  panelW = Math.max(PANEL_MIN_W, Math.min(PANEL_MAX_W, panelW));
+  return panelW;
+}
+function getColStep() {
+  return getDynamicPanelW() + PANEL_GAP;
+}
+function defaultPosition(role, idx, colsOverride) {
+  const COLS = colsOverride || FIXED_COLS;
+  const panelW = getDynamicPanelW();
+  const colStep = panelW + PANEL_GAP;
+  const col = idx % COLS, row = Math.floor(idx / COLS);
+  return { x: 8 + col * colStep, y: 8 + row * ROW_STEP, w: panelW, h: PANEL_H };
+}
+function ensureCanvasHeight() {
+  // Canvas'i en lower panele gore yeterince uzun do ki scroll dogal olsun
+  const canvas = document.getElementById("agent-canvas");
+  if (!canvas) return;
+  let maxBottom = 700;
+  canvas.querySelectorAll(".agent-panel").forEach(p => {
+    const top = parseInt(p.style.top) || 0;
+    const h = parseInt(p.style.height) || PANEL_H;
+    if (top + h + 20 > maxBottom) maxBottom = top + h + 20;
+  });
+  canvas.style.minHeight = maxBottom + "px";
+}
+function ensurePosition(role, idx) {
+  if (!panelLayout[role]) panelLayout[role] = defaultPosition(role, idx);
+  return panelLayout[role];
+}
+function applyPosition(panel, pos) {
+  panel.style.left = pos.x + "px"; panel.style.top = pos.y + "px";
+  panel.style.width = pos.w + "px"; panel.style.height = pos.h + "px";
+}
+function visibleRoles() {
+  let v;
+  if (filter === "leadership") v = LEADERSHIP;
+  else if (filter === "workers") v = WORKERS;
+  else if (filter === "all") v = ALL_ROLES;
+  else v = ALL_ROLES.filter(r => agentState[r].status === "working" || agentState[r].has_history);
+  return v.filter(r => !hiddenRoles.has(r));
+}
+
+function renderCanvas() {
+  const canvas = document.getElementById("agent-canvas");
+  const visible = visibleRoles();
+  const present = new Set();
+  canvas.querySelectorAll(".agent-panel").forEach(p => {
+    if (visible.includes(p.dataset.role)) {
+      present.add(p.dataset.role);
+      updatePanelHeader(p, p.dataset.role);
+    } else { p.remove(); }
+  });
+  visible.forEach((role) => {
+    if (!present.has(role)) {
+      const pos = ensurePosition(role, Object.keys(panelLayout).length);
+      const panel = createAgentPanel(role);
+      applyPosition(panel, pos);
+      canvas.appendChild(panel);
+    }
+  });
+  if (!visible.length) {
+    canvas.innerHTML = '<div style="padding:40px;text-align:center;color:#6e7681">Not yet active agent none. Asagidaki chat\'ten CEO\' message at.</div>';
+  }
+  ensureCanvasHeight();
+}
+
+function autoTile(opts) {
+  // opts: { keepPinned: bool } — true ise pinned panellerin pozisyonunu koru
+  const keepPinned = opts && opts.keepPinned;
+  const visible = visibleRoles();
+  const cols = getDynamicCols();
+  // Pinned'lari rezerve tut
+  const reserved = {};
+  if (keepPinned) {
+    visible.forEach(r => {
+      if (pinnedRoles.has(r) && panelLayout[r]) reserved[r] = panelLayout[r];
+    });
+  }
+  panelLayout = {};
+  let idx = 0;
+  visible.forEach(role => {
+    if (reserved[role]) {
+      panelLayout[role] = reserved[role];   // pinned: dokunma
+    } else {
+      panelLayout[role] = defaultPosition(role, idx, cols);
+      idx += 1;
+    }
+  });
+  savePrefs();
+  document.querySelectorAll(".agent-panel").forEach(p => {
+    const pos = panelLayout[p.dataset.role];
+    if (pos) applyPosition(p, pos);
+  });
+  ensureCanvasHeight();
+}
+
+// Window resize -> debounce -> pinned excluded reflow
+let _resizeT = null;
+window.addEventLherener("resize", () => {
+  if (_resizeT) clearTimeout(_resizeT);
+  _resizeT = setTimeout(() => { autoTile({ keepPinned: true }); }, 180);
+});
+
+function createAgentPanel(role) {
+  const panel = document.createElement("div");
+  panel.className = "agent-panel idle";
+  panel.dataset.role = role;
+  panel.style.setProperty("--c", ROLE_COLORS[role] || "#58a6ff");
+  panel.innerHTML = `
+    <header data-drag>
+      <div>
+        <div class="role-name">${ROLE_LABELS[role] || role}</div>
+        <div class="role-meta" data-meta>idle</div>
+      </div>
+      <div class="right-controls">
+        <button class="font-btn" data-fontdec title="Decrease font">A-</button>
+        <button class="font-btn" data-fontinc title="Increase font">A+</button>
+        <button class="pin-btn" title="Pin/unpin">PIN</button>
+        <button class="close-btn" title="Hide">X</button>
+        <span class="badge">idle</span>
+      </div>
+    </header>
+    <div class="agent-body" data-body>
+      <div class="empty-state">(not yet message none)</div>
+    </div>
+    <div class="resize-handle" data-resize></div>
+  `;
+  panel.querySelector(".pin-btn").onclick = (e) => {
+    e.stopPropagation();
+    if (pinnedRoles.has(role)) pinnedRoles.delete(role); else pinnedRoles.add(role);
+    panel.classList.toggle("pinned"); savePrefs();
+  };
+  panel.querySelector(".close-btn").onclick = (e) => {
+    e.stopPropagation(); hiddenRoles.add(role); savePrefs(); panel.remove();
+  };
+
+  // Font size checke (panel ozelinde, layout pref'e kaydedilir)
+  function applyFontSize(size) {
+    panel.style.setProperty("--body-font-size", size + "px");
+    if (panelLayout[role]) panelLayout[role].fontSize = size;
+    savePrefs();
+  }
+  // Initial font boyutunu pref'ten al
+  const initFs = (panelLayout[role] && panelLayout[role].fontSize) || 12;
+  applyFontSize(initFs);
+
+  panel.querySelector("[data-fontdec]").onclick = (e) => {
+    e.stopPropagation();
+    const cur = parseInt(panel.style.getPropertyValue("--body-font-size")) || 12;
+    applyFontSize(Math.max(9, cur - 1));
+  };
+  panel.querySelector("[data-fontinc]").onclick = (e) => {
+    e.stopPropagation();
+    const cur = parseInt(panel.style.getPropertyValue("--body-font-size")) || 12;
+    applyFontSize(Math.min(22, cur + 1));
+  };
+
+  attachDragMove(panel);
+  attachResize(panel);
+  panel.addEventLherener("mousedown", () => focusPanel(panel));
+  const body = panel.querySelector("[data-body]");
+  const msgs = agentState[role].messages;
+  if (msgs.length) {
+    body.innerHTML = "";
+    msgs.forEach(m => body.appendChild(createMsgEl(m, role)));
+    body.scrollTop = body.scrollHeight;
+  }
+  updatePanelHeader(panel, role);
+  return panel;
+}
+function focusPanel(panel) {
+  panel.style.zIndex = ++zCounter;
+  document.querySelectorAll(".agent-panel.focused").forEach(p => p.classList.remove("focused"));
+  panel.classList.add("focused");
+}
+function updatePanelHeader(panel, role) {
+  const st = agentState[role];
+  panel.classList.toggle("working", st.status === "working");
+  panel.classList.toggle("idle", st.status !== "working");
+  panel.classList.toggle("empty", !st.has_history && st.status !== "working");
+  panel.classList.toggle("pinned", pinnedRoles.has(role));
+  panel.querySelector(".badge").textContent = st.status;
+  const meta = panel.querySelector("[data-meta]");
+  if (st.status === "working") meta.innerHTML = `&larr; <strong>${st.caller || "?"}</strong> &middot; ${fmtTs(st.last_at)}`;
+  else if (st.last_at) meta.textContent = `last: ${fmtTs(st.last_at)}`;
+  else meta.textContent = "idle";
+}
+
+function attachDragMove(panel) {
+  const header = panel.querySelector("[data-drag]");
+  header.addEventLherener("mousedown", (e) => {
+    if (e.target.closest(".pin-btn, .close-btn, .resize-handle")) return;
+    e.preventDefault(); panel.classList.add("dragging"); focusPanel(panel);
+    const startX = e.clientX, startY = e.clientY;
+    const role = panel.dataset.role;
+    const pos = panelLayout[role] || defaultPosition(role, 0);
+    const startLeft = pos.x, startTop = pos.y;
+    function onMove(ev) {
+      panel.style.left = Math.max(0, startLeft + ev.clientX - startX) + "px";
+      panel.style.top = Math.max(0, startTop + ev.clientY - startY) + "px";
+    }
+    function onUp() {
+      panel.classList.remove("dragging");
+      document.removeEventLherener("mousemove", onMove);
+      document.removeEventLherener("mouseup", onUp);
+      panelLayout[role] = {
+        x: parseInt(panel.style.left), y: parseInt(panel.style.top),
+        w: parseInt(panel.style.width), h: parseInt(panel.style.height),
+      };
+      savePrefs();
+    }
+    document.addEventLherener("mousemove", onMove);
+    document.addEventLherener("mouseup", onUp);
+  });
+}
+function attachResize(panel) {
+  const handle = panel.querySelector("[data-resize]");
+  handle.addEventLherener("mousedown", (e) => {
+    e.preventDefault(); e.stopPropagation(); focusPanel(panel);
+    const startX = e.clientX, startY = e.clientY;
+    const startW = panel.offsetWidth, startH = panel.offsetHeight;
+    const role = panel.dataset.role;
+    function onMove(ev) {
+      panel.style.width = Math.max(240, startW + ev.clientX - startX) + "px";
+      panel.style.height = Math.max(160, startH + ev.clientY - startY) + "px";
+    }
+    function onUp() {
+      document.removeEventLherener("mousemove", onMove);
+      document.removeEventLherener("mouseup", onUp);
+      panelLayout[role] = {
+        x: parseInt(panel.style.left), y: parseInt(panel.style.top),
+        w: parseInt(panel.style.width), h: parseInt(panel.style.height),
+      };
+      savePrefs();
+    }
+    document.addEventLherener("mousemove", onMove);
+    document.addEventLherener("mouseup", onUp);
+  });
+}
+
+// =============== Splitter (sidebar resize) ===============
+function attachSplitter() {
+  const splitter = document.getElementById("splitter");
+  if (!splitter) return;
+  document.documentElement.style.setProperty("--sidebar-w", sidebarW + "px");
+  splitter.addEventLherener("mousedown", (e) => {
+    e.preventDefault();
+    splitter.classList.add("dragging");
+    function onMove(ev) {
+      const w = Math.max(180, Math.min(window.innerWidth - 360, ev.clientX - 8));
+      sidebarW = w;
+      document.documentElement.style.setProperty("--sidebar-w", w + "px");
+    }
+    function onUp() {
+      splitter.classList.remove("dragging");
+      savePrefs();
+      if (typeof autoTile === "function") autoTile({ keepPinned: true });
+      document.removeEventLherener("mousemove", onMove);
+      document.removeEventLherener("mouseup", onUp);
+    }
+    document.addEventLherener("mousemove", onMove);
+    document.addEventLherener("mouseup", onUp);
+  });
+}
+
+// =============== State (header + budget + tasks) ===============
+function renderHeader(data) {
+  if (!data) return;
+  const b = data.budget || {};
+  const rc = data.real_cost || {};
+  const t = data.team || {};
+  const bs = document.getElementById("budget");
+  const rcEl = document.getElementById("real-cost");
+  const ac = document.getElementById("active-count");
+  const tc = document.getElementById("task-count");
+  if (bs) {
+    const cap = b.monthly_cap || 0;
+    const spent = b.month_spend || 0;
+    const ratio = cap ? (spent / cap * 100).toFixed(0) : 0;
+    bs.textContent = `$${spent.toFixed(2)}/$${cap.toFixed(0)} (${ratio}%)`;
+  }
+  if (rcEl) {
+    if (rc.available) {
+      const realTotal = rc.total || 0;
+      const cap = b.monthly_cap || 0;
+      const ratio = cap ? (realTotal / cap * 100) : 0;
+      let color = "#c9d1d9";
+      if (ratio >= 95) color = "#ff7b72";       // critical
+      else if (ratio >= 75) color = "#f78166";  // warning
+      else if (realTotal > 0) color = "#3fb950"; // healthy
+      rcEl.textContent = `$${realTotal.toFixed(2)} (${ratio.toFixed(0)}%)`;
+      rcEl.style.color = color;
+    } else if (rc.pending) {
+      rcEl.textContent = "loadniyor...";
+      rcEl.style.color = "#8b949e";
+    } else if (rc.error) {
+      rcEl.textContent = "API error";
+      rcEl.style.color = "#ff7b72";
+    } else {
+      rcEl.textContent = "admin key none";
+      rcEl.style.color = "#6e7681";
+    }
+  }
+  if (ac) {
+    const agents = (t.agents || []).filter(a => a.status === "active");
+    ac.textContent = agents.length;
+  }
+  if (tc) {
+    const tasks = (data.tasks && data.tasks.tasks) || [];
+    const open = tasks.filter(x => x.status !== "done" && x.status !== "verified").length;
+    tc.textContent = `${open}/${tasks.length}`;
+  }
+}
+async function loadState() {
+  try {
+    const r = await fetch("/api/state");
+    const d = await r.json();
+    renderHeader(d);
+    // History'den panel fill
+    const hist = d.history || [];
+    hist.forEach(handleWsEvent);
+    renderCanvas();
+  } catch (e) { console.error("State load error:", e); }
+}
+
+// =============== WebSocket ===============
+let _ws = null;
+function connectWs() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const url = `${proto}://${location.host}/ws`;
+  _ws = new WebSocket(url);
+  const ind = document.getElementById("ws-status");
+  _ws.onopen = () => { if (ind) { ind.textContent = "connected"; ind.className = "ws connected"; } };
+  _ws.onclose = () => {
+    if (ind) { ind.textContent = "disconnected"; ind.className = "ws disconnected"; }
+    setTimeout(connectWs, 2000);
+  };
+  _ws.onmessage = (m) => {
+    try { handleWsEvent(JSON.parse(m.data)); }
+    catch (e) { console.error("WS parse error:", e); }
+  };
+}
+function handleWsEvent(ev) {
+  if (!ev || !ev.kind) return;
+  const role = ev.role;
+  const st = role && agentState[role];
+  if (st) {
+    if (ev.kind === "enter") { st.status = "working"; st.caller = ev.caller; st.last_at = ev.ts; }
+    else if (ev.kind === "exit") { st.status = "idle"; st.last_at = ev.ts; }
+    else if (ev.kind === "text" || ev.kind === "tool") { st.has_history = true; st.last_at = ev.ts; }
+    const panel = document.querySelector(`.agent-panel[data-role="${role}"]`);
+    if (panel) updatePanelHeader(panel, role);
+  }
+  if (ev.kind === "text" || ev.kind === "tool") appendMsgToPanel(role, ev);
+  appendToFeed(ev);
+  if (filter === "active" && ev.kind === "enter") renderCanvas();
+}
+
+function appendMsgToPanel(role, ev) {
+  const panel = document.querySelector(`.agent-panel[data-role="${role}"]`);
+  if (!panel) return;
+  const body = panel.querySelector("[data-body]");
+  if (!body) return;
+  const empty = body.querySelector(".empty-state");
+  if (empty) empty.remove();
+  const div = document.createElement("div");
+  if (ev.kind === "text") {
+    div.className = "msg text";
+    div.style.setProperty("--c", ROLE_COLORS[role] || "#58a6ff");
+    div.innerHTML = renderMarkdown(ev.text || "");
+  } else {
+    div.className = "msg tool";
+    const args = ev.args ? JSON.stringify(ev.args, null, 2) : "";
+    div.innerHTML = `<div class="tname">${escHtml(ev.tool || "?")}()</div>` +
+      (args ? `<div class="targs">${escHtml(args.slice(0, 600))}</div>` : "");
+  }
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function appendToFeed(ev) {
+  const feed = document.getElementById("feed");
+  if (!feed) return;
+  const div = document.createElement("div");
+  div.className = "ev " + (ev.kind || "");
+  const t = fmtTs(ev.ts);
+  const role = ev.role || "?";
+  const color = ROLE_COLORS[role] || "#8b949e";
+  if (ev.kind === "enter") {
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="enter">[BAS] caller=${ev.caller || "?"}</span>`;
+  } else if (ev.kind === "exit") {
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="exit">[BIT]</span>`;
+  } else if (ev.kind === "text") {
+    const snip = (ev.text || "").slice(0, 120).replace(/\n/g, " ");
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="text-snippet">${escHtml(snip)}</span>`;
+  } else if (ev.kind === "tool") {
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="tool-snippet">${escHtml(ev.tool || "?")}()</span>`;
+  } else { return; }
+  feed.appendChild(div);
+  // Trim eski event'lar
+  while (feed.children.length > 500) feed.removeChild(feed.firstChild);
+  if (autoscroll) feed.scrollTop = feed.scrollHeight;
+}
+
+// =============== Filter buttons ===============
+function setFilter(f) {
+  filter = f; savePrefs();
+  document.querySelectorAll("header.topbar .controls button[id^=filter-]").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById("filter-" + f);
+  if (btn) btn.classList.add("active");
+  renderCanvas();
+}
+document.getElementById("filter-active").onclick = () => setFilter("active");
+document.getElementById("filter-all").onclick = () => setFilter("all");
+document.getElementById("filter-leadership").onclick = () => setFilter("leadership");
+document.getElementById("filter-workers").onclick = () => setFilter("workers");
+
+document.getElementById("auto-tile").onclick = () => autoTile({ keepPinned: false });
+document.getElementById("reset-layout").onclick = () => {
+  if (!confirm("All layout/pin/hidden paneller sifirlanacak. Continue?")) return;
+  panelLayout = {}; pinnedRoles.clear(); hiddenRoles.clear(); savePrefs();
+  document.getElementById("agent-canvas").innerHTML = "";
+  renderCanvas();
+};
+
+document.getElementById("autoscroll-btn").onclick = (e) => {
+  autoscroll = !autoscroll;
+  e.target.textContent = (autoscroll ? "v" : "—") + " Auto-scroll: " + (autoscroll ? "ON" : "OFF");
+};
+document.getElementById("clear-btn").onclick = () => {
+  document.getElementById("feed").innerHTML = "";
+};
+
+// =============== Analytics modal ===============
+const analyticsModal = document.getElementById("analytics-modal");
+const analyticsBody = document.getElementById("analytics-body");
+const analyticsMeta = document.getElementById("analytics-meta");
+const analyticsDays = document.getElementById("analytics-days");
+async function loadAnalytics(force) {
+  analyticsBody.innerHTML = '<div style="color:#8b949e;font-style:italic;">Loadniyor... (Admin API callsi 5-10s alabilir)</div>';
+  const days = analyticsDays.value || "30";
+  try {
+    const r = await fetch(`/api/analytics?days=${days}` + (force ? "&force=1" : ""));
+    const d = await r.json();
+
+    // 1) Admin key none / error state — reason + solution
+    if (d.ok === false || (d.error && !d.cost)) {
+      analyticsMeta.textContent = "Admin API doesn't access";
+      analyticsBody.innerHTML = `
+        <div style="background:#21262d;border-left:3px solid #ff7b72;padding:14px 18px;border-radius:6px;">
+          <div style="color:#ff7b72;font-weight:600;margin-bottom:8px;">Anthropic Admin API doesn't access</div>
+          <div style="color:#c9d1d9;margin-bottom:10px;">${escHtml(d.error || "Bilinmeyen error")}</div>
+          ${d.hint ? `<div style="color:#8b949e;font-size:11px;line-height:1.6;">${escHtml(d.hint)}</div>` : ""}
+          <div style="margin-top:14px;padding:10px;background:#0d1117;border-radius:4px;font-size:11px;color:#8b949e;">
+            <strong style="color:#c9d1d9;">Solution:</strong><br>
+            1. <a href="https://console.anthropic.com/settings/admin-keys" target="_blank" style="color:#58a6ff;">Console > Settings > Admin Keys</a> over yeni admin key create (Name: <code>teamforge-usage-monitor</code>)<br>
+            2. <code>.env</code> to the file add: <code>ANTHROPIC_ADMIN_API_KEY=sk-ant-admin01-...</code><br>
+            3. Orchestrator restart<br>
+            4. Detail: <code>docs/SERVICE_ACCOUNT.md</code>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const cost = d.cost || {};
+    const usage = d.usage || {};
+    const totals = usage.totals || {};
+
+    // 2) Cost and usage'da kendi errorlari var mi?
+    const costErr = cost.error;
+    const usageErr = usage.error;
+
+    analyticsMeta.textContent = `Last ${days} day  ·  Cek: ${d.fetched_at || "-"}`;
+
+    // 3) Token total and cache hit orani hesapla
+    const totalIn = (totals.uncached_input || 0) + (totals.cache_read || 0) + (totals.cache_creation || 0);
+    const totalTokens = totalIn + (totals.output || 0);
+    const cacheHitRate = totalIn > 0 ? ((totals.cache_read || 0) / totalIn * 100) : 0;
+    const currency = cost.currency || "USD";
+
+    // 4) KPI cards
+    let html = '<div class="a-grid4" style="margin-bottom:18px;">';
+    if (costErr) {
+      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Cost HATA</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(costErr).slice(0,120)}</div></div>`;
+    } else {
+      html += `<div class="a-card"><div class="label">Total Cost</div><div class="val">${currency} ${(cost.total || 0).toFixed(4)}</div></div>`;
+      // Daily ortalama: only spend olan day sayisina bol (days_with_data)
+      const dwd = cost.days_with_data || 0;
+      const avgVal = cost.avg_per_day_with_data || 0;
+      const avgLabel = dwd ? `${dwd} active day` : `${days} day`;
+      html += `<div class="a-card"><div class="label">Daily Ortalama (${escHtml(avgLabel)})</div><div class="val">${currency} ${avgVal.toFixed(4)}</div></div>`;
+    }
+    if (usageErr) {
+      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Token HATA</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(usageErr).slice(0,120)}</div></div>`;
+    } else {
+      html += `<div class="a-card"><div class="label">Total Token</div><div class="val">${fmtNum(totalTokens)}</div></div>`;
+      const cacheColor = cacheHitRate > 50 ? "#3fb950" : cacheHitRate > 20 ? "#f78166" : "#ff7b72";
+      html += `<div class="a-card"><div class="label">Cache Hit Orani</div><div class="val" style="color:${cacheColor}">${cacheHitRate.toFixed(1)}%</div></div>`;
+    }
+    html += '</div>';
+
+    // 5) Token breakdown (input/cached/created/output)
+    if (!usageErr && totalTokens > 0) {
+      html += '<div style="font-size:12px;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Token dagilimi</div>';
+      html += '<div class="a-grid4" style="margin-bottom:18px;">';
+      html += `<div class="a-card"><div class="label">Input (uncached)</div><div class="val" style="font-size:14px">${fmtNum(totals.uncached_input || 0)}</div></div>`;
+      html += `<div class="a-card"><div class="label">Input (cache read — %90 discount)</div><div class="val" style="font-size:14px;color:#3fb950">${fmtNum(totals.cache_read || 0)}</div></div>`;
+      html += `<div class="a-card"><div class="label">Cache yazim</div><div class="val" style="font-size:14px;color:#f78166">${fmtNum(totals.cache_creation || 0)}</div></div>`;
+      html += `<div class="a-card"><div class="label">Output</div><div class="val" style="font-size:14px">${fmtNum(totals.output || 0)}</div></div>`;
+      html += '</div>';
+    }
+
+    // 6) Model based breakdown
+    const byModel = usage.by_model || {};    if (Object.keys(byModel).length > 0) {
+      html += '<div style="font-size:12px;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Model based usage</div>';
+      html += '<table class="md-table" style="font-size:11px;margin-bottom:18px;">';
+      html += '<thead><tr><th>Model</th><th style="text-align:right">Input</th><th style="text-align:right">Cache read</th><th style="text-align:right">Output</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+      const models = Object.entries(byModel).sort((a, b) => {
+        const sumA = Object.values(a[1]).reduce((s, v) => s + v, 0);
+        const sumB = Object.values(b[1]).reduce((s, v) => s + v, 0);
+        return sumB - sumA;
+      });
+      for (const [model, t] of models) {
+        const tot = (t.uncached_input || 0) + (t.cache_read || 0) + (t.cache_creation || 0) + (t.output || 0);
+        html += `<tr><td><code>${escHtml(model)}</code></td>`;
+        html += `<td style="text-align:right">${fmtNum(t.uncached_input || 0)}</td>`;
+        html += `<td style="text-align:right;color:#3fb950">${fmtNum(t.cache_read || 0)}</td>`;
+        html += `<td style="text-align:right">${fmtNum(t.output || 0)}</td>`;
+        html += `<td style="text-align:right;font-weight:600">${fmtNum(tot)}</td></tr>`;
+      }
+      html += '</tbody></table>';
+    }
+
+    // 7) Daily cost breakdown (last 15)
+    const daily = cost.daily || [];
+    if (daily.length > 0) {
+      html += '<div style="font-size:12px;font-weight:600;color:#c9d1d9;margin-bottom:6px;">Daily cost (last ' + Math.min(15, daily.length) + ')</div>';
+      html += '<table class="md-table" style="font-size:11px;margin-bottom:18px;">';
+      html += '<thead><tr><th>Date</th><th style="text-align:right">Amount</th><th>Bar</th></tr></thead><tbody>';
+      const maxAmt = Math.max(...daily.map(d => d.amount || 0), 0.01);
+      for (const d of daily.slice(-15)) {
+        const pct = ((d.amount || 0) / maxAmt) * 100;
+        html += `<tr><td>${escHtml(d.date || "-")}</td>`;
+        html += `<td style="text-align:right">${currency} ${(d.amount || 0).toFixed(4)}</td>`;
+        html += `<td><div style="background:#30363d;height:14px;width:100%;border-radius:2px;overflow:hidden;"><div style="background:#1f6feb;height:100%;width:${pct}%;"></div></div></td></tr>`;
+      }
+      html += '</tbody></table>';
+    }
+
+    // 7b) Total 0 ise sari warning
+    if (totalTokens === 0 && (cost.total || 0) === 0 && !costErr && !usageErr) {
+      html += '<div style="background:#3d2814;border-left:3px solid #f78166;padding:12px;border-radius:4px;margin-bottom:12px;">';
+      html += '<div style="color:#f78166;font-weight:600;margin-bottom:6px;">Sayilar 0 — olasi nedenler:</div>';
+      html += '<ol style="color:#c9d1d9;font-size:11px;margin:6px 0 6px 18px;">';
+      html += '<li>Yeni admin key or yeni hesap, not yet usage vaccess none</li>';
+      html += '<li>Anthropic API response structurei degisti (parser eski format waiting)</li>';
+      html += '<li>Errorli date range (last 30 day empty olabilir)</li>';
+      html += '</ol></div>';
+    }
+    // Diagnostic kutusu — HER ZAMAN görünür, total value's dogrulugunu check etmek for critical
+    html += '<div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;margin-bottom:12px;">';
+    html += '<div style="color:#8b949e;font-size:11px;margin-bottom:6px;">';
+    html += `<strong style="color:#c9d1d9;">Diagnostic:</strong> cost buckets=${escHtml(String(cost.raw_buckets||0))} (non-empty=${escHtml(String(cost.raw_non_empty_buckets||0))}, dup=${escHtml(String(cost.raw_duplicate_buckets||0))}) · `;
+    html += `active day=${escHtml(String(cost.days_with_data||0))}/${escHtml(String(days))} · `;
+    html += `usage buckets=${escHtml(String(usage.raw_buckets||0))} (non-empty=${escHtml(String(usage.raw_non_empty_buckets||0))})`;
+    if (cost.filtered_workspace) {
+      html += `<br><span style="color:#3fb950">workspace filter:</span> ${escHtml(String(cost.filtered_workspace))} (skipnan other workspace lines: ${escHtml(String(cost.skipped_other_workspace_rows||0))})`;
+    }
+    html += '</div>';
+    const rawSampleJson = JSON.stringify({cost_sample: cost._raw_sample, usage_sample: usage._raw_sample, cost_last_bucket: cost._last_bucket, usage_last_bucket: usage._last_bucket, raw_buckets_count: {cost: cost.raw_buckets, usage: usage.raw_buckets}, raw_non_empty: {cost: cost.raw_non_empty_buckets, usage: usage.raw_non_empty_buckets}}, null, 2);
+    html += '<details style="color:#8b949e;font-size:10px;"><summary style="cursor:pointer;color:#58a6ff;">Ham response sample (parser diagnosisi for) <button class="copy-btn" data-copy-target="raw-sample-pre">Kopyala</button></summary>';
+    html += `<pre id="raw-sample-pre" style="background:#0a0e14;padding:8px;margin-top:4px;border-radius:3px;max-height:400px;overflow:auto;font-size:10px;user-select:text;">`;
+    html += escHtml(rawSampleJson);
+    html += `</pre></details>`;
+    html += '</div>';
+
+    // 8) Cache savings tahmini
+    if (!usageErr && totals.cache_read > 0) {
+      const cachedSaved = (totals.cache_read || 0) * 0.9;
+      html += `<div style="background:#0d1117;border-left:3px solid #3fb950;padding:10px 14px;border-radius:4px;font-size:11px;color:#8b949e;">`;
+      html += `<strong style="color:#3fb950">Cache savings:</strong> ${fmtNum(cachedSaved)} token bedavaya yakin (cache_read %90 discount). `;
+      html += `1h cache TTL acmak herersen .env'e <code>ENABLE_PROMPT_CACHING_1H=1</code> add.`;
+      html += `</div>`;
+    }
+
+    analyticsBody.innerHTML = html;
+  } catch (e) {
+    analyticsBody.innerHTML = `<div style="color:#ff7b72;padding:14px;">Network error: ${escHtml(e.message)}<br><small>Server answer vermedi mi? Orchestrator log'una bak.</small></div>`;
+  }
+}
+document.getElementById("show-analytics").onclick = () => {
+  analyticsModal.classList.add("open"); loadAnalytics(false);
+};
+document.getElementById("analytics-close").onclick = () => analyticsModal.classList.remove("open");
+document.getElementById("analytics-refresh").onclick = () => loadAnalytics(true);
+analyticsDays.onchange = () => loadAnalytics(false);
+
+async function loadWorkspacesDebug() {
+  analyticsMeta.textContent = "Admin key diagnosisi yapiing...";
+  analyticsBody.innerHTML = '<div style="color:#8b949e;font-style:italic;">Workspace list cekiing...</div>';
+  try {
+    const r = await fetch("/api/analytics/workspaces");
+    const d = await r.json();
+    let html = '<div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:14px;margin-bottom:14px;">';
+    html += '<div style="color:#f78166;font-weight:600;margin-bottom:8px;font-size:13px;">Admin Key Debug Diagnosisi</div>';
+    if (d.error) {
+      html += `<div style="color:#ff7b72;margin-bottom:8px;">HATA: ${escHtml(d.error)}</div>`;
+      html += '<div style="color:#8b949e;font-size:11px;">.env filesinda ANTHROPIC_ADMIN_API_KEY defined not or invalid.</div>';
+    } else {
+      html += `<div style="color:#c9d1d9;margin-bottom:10px;">Admin key <strong style="color:#3fb950">${d.count || 0}</strong> workspace goruyor.</div>`;
+      if ((d.workspaces || []).length === 0) {
+        html += '<div style="color:#f78166;font-size:12px;">Workspace none — this admin key empty bir org\'a ait olabilir.</div>';
+      } else {
+        html += '<table class="md-table" style="font-size:11px;width:100%;">';
+        html += '<thead><tr><th>Workspace Adi</th><th>ID</th></tr></thead><tbody>';
+        for (const w of d.workspaces) {
+          html += `<tr><td><strong>${escHtml(w.name || "?")}</strong></td><td><code style="font-size:10px;color:#8b949e">${escHtml(w.id || "?")}</code></td></tr>`;
+        }
+        html += '</tbody></table>';
+      }
+      html += '<div style="margin-top:14px;padding:10px;background:#21262d;border-radius:4px;font-size:11px;color:#8b949e;">';
+      html += '<strong style="color:#c9d1d9;">Nadelete is read?</strong><br>';
+      html += '1. Standart API key\'i's (sk-ant-api03-...) ait being org ile <strong>same org\'da</strong> mi this workspace list? Console > Settings > Workspaces ile compare.<br>';
+      html += '2. Org farkliysa: yeni admin key\'i <strong>standart key\'in being org\'da</strong> createmalisin. Aksi halde cost_report empty drecommend.<br>';
+      html += '3. Workspace list empty: admin key invalid or org empty olabilir.';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '<details style="color:#8b949e;font-size:10px;"><summary style="cursor:pointer;color:#58a6ff;">Ham JSON response</summary>';
+    html += `<pre style="background:#0d1117;padding:8px;margin-top:4px;border-radius:3px;max-height:300px;overflow:auto;font-size:10px;">${escHtml(JSON.stringify(d, null, 2))}</pre>`;
+    html += '</details>';
+    analyticsBody.innerHTML = html;
+    analyticsMeta.textContent = `Workspaces debug · ${d.count || 0} bulundu`;
+  } catch (e) {
+    analyticsBody.innerHTML = `<div style="color:#ff7b72;padding:14px;">Network error: ${escHtml(e.message)}</div>`;
+  }
+}
+document.getElementById("analytics-workspaces").onclick = loadWorkspacesDebug;
+analyticsModal.addEventLherener("click", (e) => {
+  // Kopyala button — pre insidegini clipboard'a kopyala
+  if (e.target.classList.contains("copy-btn")) {
+    e.preventDefault(); e.stopPropagation();
+    const targetId = e.target.dataset.copyTarget;
+    const pre = targetId ? document.getElementById(targetId) : null;
+    if (pre) {
+      const text = pre.innerText || pre.textContent || "";
+      const done = () => {
+        const orig = e.target.textContent;
+        e.target.textContent = "Kopyalandi";
+        e.target.classList.add("ok");
+        setTimeout(() => { e.target.textContent = orig; e.target.classList.remove("ok"); }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => {
+          // Fallback: textarea ile
+          const ta = document.createElement("textarea");
+          ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy"); done(); } catch (_) {}
+          document.body.removeChild(ta);
+        });
+      }
+    }
+    return;
+  }
+  if (e.target === analyticsModal) analyticsModal.classList.remove("open");
+});
+
+// =============== Chat ===============
+const chatInput = document.getElementById("chat-input");
+const chatBtn = document.getElementById("chat-send");
+const chatStatus = document.getElementById("chat-status");
+async function sendChat() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  const target = (document.getElementById("chat-target")?.value || "ceo");
+  chatBtn.disabled = true; chatStatus.textContent = "sendiing..."; chatStatus.className = "status";
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message: text, target: target}),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      chatInput.value = "";
+      chatStatus.textContent = `${(data.target || target).toUpperCase()}'ya forwarded`;
+      chatStatus.className = "status ok";
+      setTimeout(() => { chatStatus.textContent = "ready"; chatStatus.className = "status"; }, 2000);
+    } else {
+      chatStatus.textContent = "error: " + (data.error || "?"); chatStatus.className = "status err";
+    }
+  } catch (e) {
+    chatStatus.textContent = "error: " + e.message; chatStatus.className = "status err";
+  } finally {
+    chatBtn.disabled = false; chatInput.focus();
+  }
+}
+chatBtn.onclick = sendChat;
+chatInput.addEventLherener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+const _chatTarget = document.getElementById("chat-target");
+if (_chatTarget) {
+  function _refreshChatLabel() {
+    const t = _chatTarget.value.toUpperCase();
+    chatInput.placeholder = `${t}' message write... (Enter ile send)`;
+    const label = document.getElementById("chat-label");
+    if (label) {
+      label.textContent = t + " >";
+      label.style.color = (t === "CFO") ? "#a371f7" : "#bc8cff";
+    }
+  }
+  _chatTarget.addEventLherener("change", _refreshChatLabel);
+  _refreshChatLabel();
+}
+
+function applyFeedHidden() {
+  const main = document.querySelector("main");
+  const btn = document.getElementById("toggle-feed");
+  if (feedHidden) {
+    main.classList.add("feed-hidden");
+    document.body.classList.add("feed-hidden");
+    if (btn) btn.textContent = "Feed Show";
+  } else {
+    main.classList.remove("feed-hidden");
+    document.body.classList.remove("feed-hidden");
+    if (btn) btn.textContent = "Hide Feed";
+  }
+  setTimeout(() => autoTile({ keepPinned: true }), 50);
+}
+function toggleFeed() {
+  feedHidden = !feedHidden;
+  savePrefs();
+  applyFeedHidden();
+}
+document.getElementById("toggle-feed").onclick = toggleFeed;
+document.getElementById("show-feed-tab").onclick = toggleFeed;
+applyFeedHidden();
+
+attachSplitter();
+loadState();
+connectWs();
+setInterval(() => {
+  fetch("/api/state").then(r => r.json()).then(renderHeader).catch(() => {});
+}, 5000);
+chatInput.focus();
+</script>
+
+<script>
+// === TeamForge Setup Wizard ===
+(async function setupCheck() {
+  try {
+    const r = await fetch("/api/setup/status");
+    const d = await r.json();
+    if (!d.completed) {
+      document.getElementById("setup-overlay").style.display = "block";
+      if (!d.anthropic_key_present) {
+        document.getElementById("setup-status").innerHTML =
+          '<span style="color:#ff7b72">UYARI: ANTHROPIC_API_KEY env var is missing. .env to the file add.</span>';
+      }
+    }
+  } catch (e) { console.error("setup check:", e); }
+})();
+
+let _setupSpec = null;
+document.getElementById("setup-generate-btn").addEventLherener("click", async () => {
+  const btn = document.getElementById("setup-generate-btn");
+  const desc = document.getElementById("setup-description").value.trim();
+  const status = document.getElementById("setup-status");
+  if (!desc) { status.textContent = "Lutfen proje description write."; return; }
+  btn.disabled = true; btn.textContent = "Generating (15-30s)...";
+  status.style.color = "#8b949e"; status.textContent = "Claude analiz doing...";
+  try {
+    const r = await fetch("/api/setup/generate", {
+      method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({description: desc}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || "Bilinmeyen error");
+    _setupSpec = d.spec;
+    renderSetupPreview(d.spec);
+    document.getElementById("setup-step-1").style.display = "none";
+    document.getElementById("setup-step-2").style.display = "block";
+  } catch (e) {
+    status.style.color = "#ff7b72";
+    status.textContent = "Error: " + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = "Generate Team";
+  }
+});
+
+function renderSetupPreview(spec) {
+  const p = spec.project || {};
+  document.getElementById("setup-preview-project").innerHTML =
+    `<strong>${p.name||""}</strong> &middot; ${p.domain||""}<br>` +
+    `<span style="color:#8b949e;font-size:12px">${p.summary||""}</span>` +
+    (p.compliance && p.compliance.length ? `<br><span style="color:#f78166;font-size:11px">Compliance: ${p.compliance.join(", ")}</span>` : "");
+  const ts = spec.tech_stack || {};
+  document.getElementById("setup-preview-tech").innerHTML =
+    Object.entries(ts).filter(([k,v]) => v).map(([k,v]) =>
+      `<div><strong style="color:#79c0ff">${k}:</strong> ${v}</div>`).join("");
+  const rolesDiv = document.getElementById("setup-preview-roles");
+  rolesDiv.innerHTML = "";
+  for (const role of spec.roles || []) {
+    const c = role.tier === "leader" ? "#bc8cff" : "#56d364";
+    const card = document.createElement("div");
+    card.style.cssText = "background:#161b22; border-left:3px solid "+c+"; border-radius:4px; padding:10px 12px; margin-bottom:6px;";
+    card.innerHTML =
+      `<div style="font-weight:600; color:${c}">${role.label} <span style="color:#6e7681;font-weight:400;font-size:11px">(${role.tier}, ${role.model})</span></div>` +
+      `<div style="color:#c9d1d9; font-size:11px; margin-top:4px;">${role.persona||""}</div>` +
+      (role.delegates_to && role.delegates_to.length ?
+        `<div style="color:#8b949e; font-size:10px; margin-top:4px;">Delegates to: ${role.delegates_to.join(", ")}</div>` : "");
+    rolesDiv.appendChild(card);
+  }
+}
+
+document.getElementById("setup-back-btn").addEventLherener("click", () => {
+  document.getElementById("setup-step-2").style.display = "none";
+  document.getElementById("setup-step-1").style.display = "block";
+});
+
+document.getElementById("setup-save-btn").addEventLherener("click", async () => {
+  const btn = document.getElementById("setup-save-btn");
+  btn.disabled = true; btn.textContent = "Kaydediing...";
+  try {
+    const r = await fetch("/api/setup/save", {
+      method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({spec: _setupSpec}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || "Bilinmeyen error");
+    document.getElementById("setup-step-2").style.display = "none";
+    document.getElementById("setup-step-3").style.display = "block";
+  } catch (e) {
+    alert("Record errorsi: " + e.message);
+    btn.disabled = false; btn.textContent = "Approve and install";
+  }
+});
+</script>
+
+</body>
+</html>

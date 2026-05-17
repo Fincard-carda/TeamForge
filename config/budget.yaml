@@ -1,0 +1,15 @@
+# TeamForge budget settings (Anthropic API costs).
+# The setup wizard prompts you for the initial cap. You can change it later.
+
+currency: USD
+
+totals:
+  monthly_cap: 100.0          # monthly upper limit (USD)
+  soft_warning_at: 0.75       # CEO is warned at 75%
+  hard_block_at: 0.95         # new spend halts at 95%
+
+thresholds:
+  single_decision_cap: 50.0   # max spend for a single decision
+
+# Estimated monthly per-role usage (reference). Setup wizard fills this in.
+agent_costs_monthly: {}

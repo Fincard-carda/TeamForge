@@ -1,0 +1,55 @@
+# Hierarchy and permissions policies.
+#
+# Populated by the setup wizard. Each role inherits the relevant baseline
+# from `_defaults`, then a specific tool list is added.
+#
+# Schema:
+#   roles:
+#     <role_id>:
+#       delegate_to: [list]              # which roles this one can delegate to
+#       can_request_new_agent: bool
+#       can_approve_budget: bool
+#       can_escalate_to_user: bool
+#       writes_code: bool
+#       tools: [list]                    # MCP tools this role can call
+#       allow_subagent_spawn: bool       # default false
+#
+# Leader roles (CEO/CFO/PM/Tech Lead) delegate; they do not write code.
+# Worker roles (developers/testers/devops) write code; they do not delegate.
+
+_defaults:
+  leader:
+    can_request_new_agent: true
+    can_approve_budget: false
+    can_escalate_to_user: true
+    writes_code: false
+    allow_subagent_spawn: true
+    tools_baseline:
+      - knowledge.read_docs
+      - knowledge.list_artifacts
+      - knowledge.read_artifact
+      - knowledge.write_decision
+      - brief.save
+      - brief.load
+      - delegate.check_result
+      - delegate.read_inbox
+      - viz.table
+      - viz.kpi_card
+
+  worker:
+    can_request_new_agent: false
+    can_approve_budget: false
+    can_escalate_to_user: false
+    writes_code: true
+    allow_subagent_spawn: false
+    tools_baseline:
+      - code.read_file
+      - code.write_file
+      - code.list_dir
+      - knowledge.read_docs
+      - knowledge.read_artifact
+      - brief.save
+      - brief.load
+
+# The setup wizard appends roles here. Starts empty:
+roles: {}

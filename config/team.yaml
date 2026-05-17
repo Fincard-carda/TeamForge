@@ -1,0 +1,14 @@
+# TeamForge team composition.
+# This file is populated by the setup wizard on first launch.
+# Manual editing: add a profile, model, and max_turns for each role.
+#
+# Example:
+# roles:
+#   ceo:
+#     count: 1
+#     model: ${CLAUDE_MODEL_LEAD}
+#     max_turns: 40
+#     profile: >
+#       Describe the role's persona and domain expertise in a few sentences.
+
+roles: {}

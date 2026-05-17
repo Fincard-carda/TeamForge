@@ -1,0 +1,174 @@
+# TeamForge
+
+**Generic multi-agent framework** built on the Claude Agent SDK. Spin up a tailored team of AI agents from a single sentence describing your project — complete with **dynamic role generation**, a **live dashboard**, **budget controls**, and **automatic delegation**.
+
+## Quick start
+
+```bash
+git clone https://github.com/Fincard-carda/TeamForge.git
+cd TeamForge
+
+python -m venv .venv
+.venv\Scripts\activate            # Windows
+source .venv/bin/activate           # Linux/macOS
+
+pip install -r requirements.txt
+cp .env.example .env                # then edit .env and set ANTHROPIC_API_KEY
+python -m orchestrator
+```
+
+When the orchestrator boots it auto-opens `http://127.0.0.1:7777` in your browser — the **Setup wizard** greets you there.
+
+---
+
+## Setup flow (first run — one time only)
+
+The setup wizard asks Claude to design an agent team and tech stack tailored to your project. You only need to provide a one-paragraph description. Steps:
+
+1. **Start the orchestrator:** `python -m orchestrator`
+   - If no prompts/config exist yet, CEO/CFO agents are **not** spawned; only the dashboard and setup wizard come up.
+   - The terminal prints: `FIRST RUN: setup not completed. -> http://127.0.0.1:7777`
+
+2. **Setup screen in your browser:** Opens automatically (open it manually if you closed it).
+   - You'll see a single textarea: **"Project description"**.
+   - Follow the example placeholders; aim for 50-200 words of concrete detail.
+
+3. **Click "Generate team".** Claude (Opus) takes about 15-30 seconds to produce:
+   - A project summary + domain + compliance items
+   - A recommended tech stack (backend, frontend, mobile, data, infra)
+   - **6-12 roles**: CEO, CFO, PM, BA, Tech Lead and a worker mix that fits your project (developers, testers, designers, devops, etc.)
+   - For each role: persona, responsibilities, delegation lines
+
+   The result is shown as a **preview**.
+
+4. **Review the preview:**
+   - Not happy? Click `Back`, tweak the description, and regenerate.
+   - Looks good? Click `Approve and install`.
+
+5. **On approval the following files are written:**
+   - `prompts/<role>.md` — system prompt per role
+   - `config/team.yaml` — team composition (model, max_turns, persona)
+   - `config/policies.yaml` — permissions matrix (who delegates to whom, which tools each role can call)
+   - `config/tech_stack.yaml` — tech stack reference
+   - `state/setup_complete.json` — setup flag (the wizard won't run again)
+
+6. **Restart the orchestrator:** Ctrl+C in the terminal, then `python -m orchestrator`. This time CEO and CFO come up.
+
+7. **Start using the team:**
+   - Send a message to CEO/CFO from the browser chat bar or the terminal.
+   - CEO delegates to PM, PM to Tech Lead, Tech Lead to developers automatically.
+   - The dashboard shows each agent's live state, recent messages, and tool calls.
+
+---
+
+## Reset flow (start over with a new project)
+
+To wipe the current team and start a fresh setup:
+
+### Quick reset (re-trigger the setup wizard only)
+```bash
+# Stop the orchestrator (Ctrl+C)
+rm state/setup_complete.json
+rm prompts/*.md
+python -m orchestrator
+```
+The wizard reopens. Existing `config/*.yaml` files will be overwritten on next save.
+
+### Full reset (clear state + logs)
+```bash
+rm state/setup_complete.json
+rm prompts/*.md
+rm state/*.json 2>/dev/null         # ledger, briefs, audit log
+rm -rf state/briefs/
+rm logs/*.log 2>/dev/null
+```
+
+### Windows PowerShell equivalent
+```powershell
+Remove-Item state/setup_complete.json
+Remove-Item prompts/*.md
+Remove-Item state/*.json -ErrorAction DeleteentlyContinue
+Remove-Item -Recurse state/briefs/ -ErrorAction DeleteentlyContinue
+```
+
+### Manual configuration (skipping the wizard)
+If you'd rather hand-craft roles instead of letting the LLM generate them:
+- Add your roles to `config/team.yaml` (shape: `roles: { ceo: {...}, cfo: {...}, ... }`)
+- Write each `prompts/<role>.md` by hand (use `prompts.template/base_agent.md` as a skeleton)
+- Define permissions and tool access per role in `config/policies.yaml`
+- Create `state/setup_complete.json` with `{"completed": true}` to skip the wizard
+
+---
+
+## Architecture
+
+| Component | Description |
+|---|---|
+| `orchestrator.py` | Main entry: starts CEO + CFO, dynamic delegation, budget monitor, stdin/dashboard chat |
+| `tools/setup_wizard.py` | First-run wizard: LLM role generation + writes config files |
+| `tools/dashboard.py` + `dashboard.html` | aiohttp + WebSocket dashboard with live stream, analytics modal, setup overlay |
+| `tools/analytics.py` | Anthropic Admin API wrapper for cost/usage — defensive (allowlist, rate limit, audit log) |
+| `tools/budget.py` | Local ledger + `sync_from_analytics` + threshold alerts |
+| `tools/delegation.py` | `delegate.to_*` tools (sub-agent spawn, async fanout) |
+| `tools/knowledge.py` | Read docs/artifacts, record decisions |
+| `tools/runtime.py` | Agent options builder (system_prompt, MCP server setup) |
+| `prompts/` | Per-role system prompts (generated by the setup wizard) |
+| `prompts.template/base_agent.md` | Skeleton the wizard fills in for each role |
+| `config/team.yaml` | Team composition |
+| `config/policies.yaml` | Permissions matrix |
+| `config/tech_stack.yaml` | Tech stack reference |
+| `config/budget.yaml` | Monthly cap + thresholds |
+| `state/` | Runtime data (ledger, briefs, audit log) — git-ignored |
+
+---
+
+## Key features
+
+### Dynamic team generation
+The setup wizard turns a one-sentence project description into a 6-12 role team with persona, responsibilities, tech stack recommendations, compliance items, and a delegation hierarchy — all in a single Claude API call.
+
+### Budget management (Anthropic API)
+- Two sources: **local ledger** + **real Anthropic spend** (via Admin API).
+- A periodic background monitor (default every hour) pulls actual spend.
+- Soft (75%) and hard (95%) thresholds trigger **automatic CEO messages**:
+  - Soft -> CEO syncs spend + offers optimization suggestions
+  - Hard -> CEO halts new spend and asks the user for approval
+- The dashboard header shows both local and real spend side by side with threshold-based coloring (green/orange/red).
+
+### Defensive Admin API wrapper
+- **Allowlist** — only 4 read-only endpoints can be called.
+- **Rate limit** — 60 calls/hour cap.
+- **Audit log** — every call recorded in `state/admin_api_audit.json` (timestamp, path, source).
+- **Cache** — 5-minute in-memory cache.
+
+### Dashboard
+- Live stream of each agent's last message and tool calls
+- Drag/drop, resizable, pinnable panels
+- Analytics modal: last N days of cost + tokens + per-model usage from the Anthropic API
+- Workspace filter (`TEAMFORGE_WORKSPACE_ID` env var)
+- Setup wizard overlay (shown on first run)
+
+---
+
+## Environment variables
+
+See the docstrings in `.env.example` for the full list. The most important ones:
+
+| Var | Description |
+|---|---|
+| `ANTHROPIC_API_KEY` | Standard API key (model calls + setup wizard) |
+| `ANTHROPIC_ADMIN_API_KEY` | (Optional) Cost/usage monitoring — without it the local ledger still works |
+| `TEAMFORGE_WORKSPACE_ID` | (Optional) Limit spend tracking to a single workspace |
+| `TEAMFORGE_BUDGET_MONITOR` | `on`/`off` — periodic budget checking |
+| `TEAMFORGE_BUDGET_CHECK_INTERVAL_MIN` | Polling interval in minutes (default 60) |
+| `TEAMFORGE_DASHBOARD_PORT` | Dashboard port (default 7777) |
+| `TEAMFORGE_AUTO_OPEN` | `on`/`off` — auto-open the dashboard in the browser when the orchestrator starts |
+| `CLAUDE_MODEL` | Model for workers (default Sonnet) |
+| `CLAUDE_MODEL_LEAD` | Model for leader roles (default Opus) |
+| `ENABLE_PROMPT_CACHING_1H` | 1-hour prompt cache (50-70% input token savings on chain delegation) |
+
+---
+
+## License
+
+MIT (or the project owner's choice).

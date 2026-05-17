@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pyyaml
+
+      - name: Python syntax check
+        run: |
+          python -m compileall -q orchestrator.py tools/ agents/ scripts/
+
+      - name: Ruff (lint)
+        run: |
+          ruff check --select E9,F63,F7,F82 --output-format=github .
+        # E9/F63/F7/F82 = only critical errors; full ruff comes later
+
+      - name: Validate YAML configs
+        run: |
+          python - <<'PY'
+          import yaml, sys
+          from pathlib import Path
+          errs = 0
+          for f in Path('config').glob('*.yaml'):
+              try:
+                  yaml.safe_load(f.read_text(encoding='utf-8'))
+                  print(f'OK  {f}')
+              except Exception as e:
+                  print(f'FAIL {f}: {e}', file=sys.stderr)
+                  errs += 1
+          sys.exit(errs)
+          PY
+
+      - name: Import smoke test
+        env:
+          ANTHROPIC_API_KEY: sk-ant-fake-for-import-only
+        run: |
+          python -c "
+          import importlib
+          for mod in ['orchestrator', 'tools.analytics', 'tools.budget',
+                     'tools.dashboard', 'tools.setup_wizard', 'tools.runtime',
+                     'tools.delegation', 'tools.knowledge', 'tools.config_loader']:
+              importlib.import_module(mod)
+              print(f'OK  {mod}')
+          "

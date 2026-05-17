@@ -1,0 +1,11 @@
+# TeamForge tech stack — specialist agents read these defaults.
+# The setup wizard fills this in based on the project domain.
+# You can edit it manually afterwards.
+
+project:
+  name: ""
+  domain: ""           # e.g. payments, e-commerce, saas, healthcare
+  target_markets: []
+  compliance: []
+
+# backend / frontend / mobile / data sections can be added during setup.
