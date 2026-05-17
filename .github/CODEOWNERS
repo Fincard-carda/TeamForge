@@ -1,0 +1,7 @@
+# Code owners — every PR must be reviewed and approved by these accounts.
+# Branch protection rule "Require review from Code Owners" enforces this.
+# Syntax: <path-pattern> <user-or-team>
+# Order matters: later entries override earlier ones.
+
+# Default: all files require approval from the repo owner
+*       @Fincard-carda
