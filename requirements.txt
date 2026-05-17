@@ -2,5 +2,5 @@ claude-agent-sdk>=0.2.82
 anyio>=4.0.0
 pyyaml>=6.0.3
 python-dotenv>=1.0.0
-rich>=13.7.0
+rich>=15.0.0
 aiohttp>=3.13.5
