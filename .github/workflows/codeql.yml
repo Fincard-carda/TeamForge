@@ -1,0 +1,43 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly full sweep on Mondays at 03:21 UTC.
+    # Random minute so this doesn't pile up on a popular cron slot.
+    - cron: "21 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write   # required by CodeQL to upload findings
+  pull-requests: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript]
+        # JavaScript covers the dashboard.html inline JS;
+        # CodeQL bundles JS+TS automatically.
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+          # security-and-quality is broader than security-extended:
+          # catches both vulnerability patterns and maintainability issues.
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
