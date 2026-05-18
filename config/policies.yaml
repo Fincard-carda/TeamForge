@@ -35,7 +35,7 @@ roles:
   ceo:
     delegate_to:
     - cfo
-    - tech_lead
+    - project_manager
     can_request_new_agent: true
     can_approve_budget: true
     can_escalate_to_user: true
@@ -53,7 +53,7 @@ roles:
     - viz.table
     - viz.kpi_card
     - delegate.to_cfo
-    - delegate.to_tech_lead
+    - delegate.to_project_manager
     - budget.get_report
     - budget.log_expense
     - budget.sync_from_analytics
@@ -83,10 +83,8 @@ roles:
     - analytics.cost_report
     - analytics.usage_report
     - budget.sync_from_analytics
-  tech_lead:
-    delegate_to:
-    - full_stack_dev
-    - qa_engineer
+  project_manager:
+    delegate_to: []
     can_request_new_agent: false
     can_approve_budget: false
     can_escalate_to_user: false
@@ -115,7 +113,7 @@ roles:
     - knowledge.read_artifact
     - brief.save
     - brief.load
-  qa_engineer:
+  ui_ux_designer:
     delegate_to: []
     can_request_new_agent: false
     can_approve_budget: false
