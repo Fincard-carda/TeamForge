@@ -65,3 +65,17 @@ jobs:
               importlib.import_module(mod)
               print(f'OK  {mod}')
           "
+      - name: Detect secrets in diff
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml   # opsiyonel
+      
+      - name: Static analysis (Python)
+        run: |
+          pip install bandit
+          bandit -r tools/ orchestrator.py -ll   # only HIGH/MEDIUM
+      
+      - name: Dependency vulnerability scan
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
