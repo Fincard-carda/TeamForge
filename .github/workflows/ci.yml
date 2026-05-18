@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Workflow-level permissions: keep them minimal.
+# Individual jobs can request more if they really need it.
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   lint-and-validate:
     runs-on: ubuntu-latest
@@ -15,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # gitleaks needs full history for diff scans
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
@@ -26,16 +34,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pyyaml
+          pip install ruff pyyaml bandit pip-audit
 
       - name: Python syntax check
         run: |
           python -m compileall -q orchestrator.py tools/ agents/ scripts/
 
-      - name: Ruff (lint)
+      - name: Ruff (lint, critical errors only)
         run: |
           ruff check --select E9,F63,F7,F82 --output-format=github .
-        # E9/F63/F7/F82 = only critical errors; full ruff comes later
 
       - name: Validate YAML configs
         run: |
@@ -65,3 +72,33 @@ jobs:
               importlib.import_module(mod)
               print(f'OK  {mod}')
           "
+
+      - name: Bandit (Python security linter, high/medium severity only)
+        run: |
+          bandit -r tools/ orchestrator.py -ll -ii --skip B101 || true
+        # -ll = HIGH+MEDIUM severity, -ii = HIGH+MEDIUM confidence
+        # B101 = assert_used (false-positive heavy in pytest-style code)
+        # `|| true` for now so this is informational, not blocking;
+        # remove the `|| true` once findings are triaged.
+
+      - name: pip-audit (dependency vulnerability scan)
+        run: |
+          pip-audit -r requirements.txt --disable-pip || true
+        # Same idea: informational for now, remove `|| true` to enforce.
+
+  secret-scan:
+    # Run gitleaks in a separate job so the main matrix stays green even if
+    # gitleaks has a transient issue (rare but happens).
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
