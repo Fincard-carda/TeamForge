@@ -7,7 +7,37 @@
 ```bash
 git clone https://github.com/Fincard-carda/TeamForge.git
 cd TeamForge
+```
 
+Then run the installer that matches your OS — it checks Python, sets up the
+virtual environment, installs dependencies, and creates `.env` from the template:
+
+**Windows**
+
+```
+setup.bat
+```
+
+Double-click it from File Explorer, or run `.\setup.bat` from a terminal.
+(`setup.bat` is a thin wrapper that invokes `install.ps1` with the right
+PowerShell execution policy.)
+
+**macOS / Linux**
+
+```bash
+bash install.sh
+```
+
+The installer will offer to install Python via your package manager if it
+isn't already there (winget on Windows, Homebrew on macOS, apt/dnf/pacman on
+Linux). You can answer **N** to skip and install Python manually instead.
+
+When the orchestrator boots it auto-opens `http://127.0.0.1:7777` in your
+browser — the **Setup wizard** greets you there.
+
+### Manual setup (no installer)
+
+```bash
 python -m venv .venv
 .venv\Scripts\activate            # Windows
 source .venv/bin/activate           # Linux/macOS
@@ -16,8 +46,6 @@ pip install -r requirements.txt
 cp .env.example .env                # then edit .env and set ANTHROPIC_API_KEY
 python -m orchestrator
 ```
-
-When the orchestrator boots it auto-opens `http://127.0.0.1:7777` in your browser — the **Setup wizard** greets you there.
 
 ---
 
