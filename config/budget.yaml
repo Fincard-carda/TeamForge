@@ -1,7 +1,7 @@
 # TeamForge budget settings - monthly_cap set via setup wizard
 currency: USD
 totals:
-  monthly_cap: 200.0
+  monthly_cap: 100.0
   soft_warning_at: 0.75
   hard_block_at: 0.95
 thresholds:
