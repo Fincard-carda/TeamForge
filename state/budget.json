@@ -1,0 +1,15 @@
+{
+  "entries": [
+    {
+      "ts": "2026-05-18T00:36:27Z",
+      "category": "anthropic_actual_sync",
+      "amount": 135.5161,
+      "note": "Sync: local 0.0000 -> real 135.5161 USD (delta +135.5161, last 30 day). HARD BLOCK sync: real Anthropic spend $135.52 vs $100 cap. Local ledger was at $0 — correcting now."
+    }
+  ],
+  "totals": {
+    "all_time": 135.5161,
+    "month": 135.5161
+  },
+  "month_key": "2026-05"
+}

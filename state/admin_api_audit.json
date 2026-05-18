@@ -1,0 +1,614 @@
+{
+  "calls": [
+    {
+      "ts": "2026-05-17T23:40:52+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:40:52Z,ending_at=2026-05-17T23:40:52Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:40:54+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:40:52Z,ending_at=2026-05-17T23:40:52Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:40:56+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:40:52Z,ending_at=2026-05-17T23:40:52Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wMlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:40:57+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:40:52Z,ending_at=2026-05-17T23:40:52Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wOVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:40:58+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:40:52Z,ending_at=2026-05-17T23:40:52Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:53:10+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:53:10Z,ending_at=2026-05-17T23:53:10Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:53:12+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:53:10Z,ending_at=2026-05-17T23:53:10Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:53:13+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:53:10Z,ending_at=2026-05-17T23:53:10Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wMlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:53:14+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:53:10Z,ending_at=2026-05-17T23:53:10Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wOVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:53:16+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:53:10Z,ending_at=2026-05-17T23:53:10Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:03+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:03Z,ending_at=2026-05-17T23:57:03Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:04+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:03Z,ending_at=2026-05-17T23:57:03Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:06+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:03Z,ending_at=2026-05-17T23:57:03Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wMlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:07+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:03Z,ending_at=2026-05-17T23:57:03Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wOVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:08+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:03Z,ending_at=2026-05-17T23:57:03Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:21+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:21Z,ending_at=2026-05-17T23:57:21Z,bucket_width=1d,group_by[]=['model']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:22+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:21Z,ending_at=2026-05-17T23:57:21Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNC0yNVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:23+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:21Z,ending_at=2026-05-17T23:57:21Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0wMlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:25+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:21Z,ending_at=2026-05-17T23:57:21Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0wOVQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-17T23:57:26+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-17T23:57:21Z,ending_at=2026-05-17T23:57:21Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0xNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:07:22+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:07:22Z,ending_at=2026-05-18T00:07:22Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:07:23+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:07:22Z,ending_at=2026-05-18T00:07:22Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:07:24+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:07:22Z,ending_at=2026-05-18T00:07:22Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:07:25+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:07:22Z,ending_at=2026-05-18T00:07:22Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:07:27+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:07:22Z,ending_at=2026-05-18T00:07:22Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:17:16+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:17:16Z,ending_at=2026-05-18T00:17:16Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:17:18+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:17:16Z,ending_at=2026-05-18T00:17:16Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:17:19+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:17:16Z,ending_at=2026-05-18T00:17:16Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:17:21+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:17:16Z,ending_at=2026-05-18T00:17:16Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:17:22+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:17:16Z,ending_at=2026-05-18T00:17:16Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:27:20+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:27:20Z,ending_at=2026-05-18T00:27:20Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:27:21+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:27:20Z,ending_at=2026-05-18T00:27:20Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:27:23+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:27:20Z,ending_at=2026-05-18T00:27:20Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:27:24+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:27:20Z,ending_at=2026-05-18T00:27:20Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:27:26+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:27:20Z,ending_at=2026-05-18T00:27:20Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:32:00+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:32:00Z,ending_at=2026-05-18T00:32:00Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:32:01+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:32:00Z,ending_at=2026-05-18T00:32:00Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:32:02+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:32:00Z,ending_at=2026-05-18T00:32:00Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:32:04+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:32:00Z,ending_at=2026-05-18T00:32:00Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:32:05+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:32:00Z,ending_at=2026-05-18T00:32:00Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:28+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:28Z,ending_at=2026-05-18T00:33:28Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:29+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:28Z,ending_at=2026-05-18T00:33:28Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:31+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:28Z,ending_at=2026-05-18T00:33:28Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:32+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:28Z,ending_at=2026-05-18T00:33:28Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:34+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:28Z,ending_at=2026-05-18T00:33:28Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:57+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:57Z,ending_at=2026-05-18T00:33:57Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:33:58+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:57Z,ending_at=2026-05-18T00:33:57Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:34:00+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:57Z,ending_at=2026-05-18T00:33:57Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:34:01+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:57Z,ending_at=2026-05-18T00:33:57Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:34:03+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:33:57Z,ending_at=2026-05-18T00:33:57Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:40+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:40Z,ending_at=2026-05-18T00:35:40Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:41+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:40Z,ending_at=2026-05-18T00:35:40Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:42+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:40Z,ending_at=2026-05-18T00:35:40Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:43+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:40Z,ending_at=2026-05-18T00:35:40Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:45+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:40Z,ending_at=2026-05-18T00:35:40Z,bucket_width=1d,group_by[]=['workspace_id'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:35:59+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:59Z,ending_at=2026-05-18T00:35:59Z,bucket_width=1d,group_by[]=['model']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:36:00+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:59Z,ending_at=2026-05-18T00:35:59Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNC0yNlQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:36:03+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:59Z,ending_at=2026-05-18T00:35:59Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0wM1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:36:04+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:59Z,ending_at=2026-05-18T00:35:59Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0xMFQwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:36:06+00:00",
+      "path": "/organizations/usage_report/messages",
+      "method": "GET",
+      "params_summary": "starting_at=2026-04-18T00:35:59Z,ending_at=2026-05-18T00:35:59Z,bucket_width=1d,group_by[]=['model'],page=page_MjAyNi0wNS0xN1QwMDowMDowM",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    },
+    {
+      "ts": "2026-05-18T00:36:08+00:00",
+      "path": "/organizations/cost_report",
+      "method": "GET",
+      "params_summary": "starting_at=2026-05-11T00:36:08Z,ending_at=2026-05-18T00:36:08Z,bucket_width=1d,group_by[]=['workspace_id']",
+      "source": "user_or_dashboard",
+      "role": "(none)",
+      "status": "OK",
+      "http_status": 200
+    }
+  ]
+}
