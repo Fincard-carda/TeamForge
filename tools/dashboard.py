@@ -87,35 +87,51 @@ class DashboardServer:
         })
 
     async def _handle_setup_generate(self, request: web.Request) -> web.Response:
-        """User proje aciklama send, Claude rol/tech spec produces."""
+        """User submits project description (+ language). Claude produces team spec."""
         from . import setup_wizard
         try:
             data = await request.json()
         except Exception:
-            return web.json_response({"ok": False, "error": "JSON required"}, status=400)
+            return web.json_response({"ok": False, "error": "JSON body required"}, status=400)
         desc = (data.get("description") or "").strip()
+        language = (data.get("language") or "English").strip() or "English"
+        size = (data.get("size") or "min").strip().lower()
+        if size not in ("min", "max", "custom"):
+            size = "min"
         if not desc:
-            return web.json_response({"ok": False, "error": "description empty can't be"}, status=400)
+            return web.json_response({"ok": False, "error": "description cannot be empty"}, status=400)
         try:
-            spec = await setup_wizard.generate_team_async(desc)
-            return web.json_response({"ok": True, "spec": spec})
+            spec = await setup_wizard.generate_team_async(desc, language=language, size=size)
+            return web.json_response({"ok": True, "spec": spec, "language": language, "size": size})
         except Exception as e:
             log.exception("setup generate failed")
             return web.json_response({"ok": False, "error": str(e)}, status=500)
 
     async def _handle_setup_save(self, request: web.Request) -> web.Response:
-        """Approvallanan spec'i filelara write, setup_complete flag at."""
+        """Save the approved spec to files and set the setup_complete flag."""
         from . import setup_wizard
         try:
             data = await request.json()
         except Exception:
-            return web.json_response({"ok": False, "error": "JSON required"}, status=400)
+            return web.json_response({"ok": False, "error": "JSON body required"}, status=400)
         spec = data.get("spec")
+        language = (data.get("language") or "English").strip() or "English"
+        try:
+            monthly_budget = float(data.get("monthly_budget") or 100.0)
+        except (TypeError, ValueError):
+            monthly_budget = 100.0
+        selected_role_ids = data.get("selected_role_ids")
+        if selected_role_ids is not None and not isinstance(selected_role_ids, list):
+            return web.json_response({"ok": False, "error": "selected_role_ids must be a list"}, status=400)
         if not isinstance(spec, dict):
-            return web.json_response({"ok": False, "error": "spec dict must be"}, status=400)
+            return web.json_response({"ok": False, "error": "spec must be a dict"}, status=400)
         try:
             result = await __import__("asyncio").get_running_loop().run_in_executor(
-                None, setup_wizard.save_spec, spec)
+                None, lambda: setup_wizard.save_spec(
+                    spec, language=language,
+                    monthly_budget=monthly_budget,
+                    selected_role_ids=selected_role_ids,
+                ))
             return web.json_response({"ok": True, **result})
         except Exception as e:
             log.exception("setup save failed")

@@ -167,7 +167,7 @@ def print_system(text: str) -> None:
 
 def print_approval(req) -> None:
     print("\n" + "=" * 60)
-    print(f"\033[31m[ONAY GEREKIYOR]\033[0m  {req.title}  (id={req.id})")
+    print(f"\033[31m[APPROVAL NEEDED]\033[0m  {req.title}  (id={req.id})")
     print("-" * 60)
     print(req.summary)
     if req.details:
@@ -334,7 +334,7 @@ async def budget_monitor(stdin_q: asyncio.Queue) -> None:
 async def main_async() -> int:
     setup_logging()
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        print_system("ANTHROPIC_API_KEY bulunamadi.")
+        print_system("ANTHROPIC_API_KEY not found.")
         return 2
 
     transcript = live_log.start_transcript()
@@ -436,10 +436,10 @@ async def main_async() -> int:
     from tools import setup_wizard
     if not setup_wizard.is_setup_complete():
         print_system("=" * 60)
-        print_system("ILK ACILIS: kurulum tamamlanmamis.")
-        print_system("Dashboard'i acip projeni tanit, agent teami createulacak.")
+        print_system("FIRST RUN: setup not completed yet.")
+        print_system("Open the dashboard and describe your project — your agent team will be generated.")
         print_system("  -> http://127.0.0.1:7777")
-        print_system("Setup bitince orchestrator'i Ctrl+C ile stopup tekrar start.")
+        print_system("After setup finishes, stop the orchestrator with Ctrl+C and start it again.")
         print_system("=" * 60)
         # Dashboard ayakta, only badd (Ctrl+C ile remove)
         try:
@@ -455,14 +455,14 @@ async def main_async() -> int:
         leader_roles = [rid for rid, r in roles_cfg.items()
                         if (r.get("tier") == "leader") or rid in ("ceo", "cfo")]
         if not leader_roles:
-            print_system("team.yaml'da hicbir lider rol none. Setup'i tekrar run.")
+            print_system("No leader roles found in team.yaml. Re-run setup.")
             return 1
     except Exception as e:
         print_system(f"team.yaml okuma errorsi: {e}")
         return 1
 
     if "ceo" not in roles_cfg or "cfo" not in roles_cfg:
-        print_system("Hem CEO hem CFO role mandatory. Setup'i tekrar run.")
+        print_system("Both CEO and CFO roles are required. Re-run setup.")
         return 1
 
     try:
@@ -494,7 +494,7 @@ async def main_async() -> int:
                     if cmd == "/chain":
                         print_system(f"Zincir: {live_log.chain_str()}"); continue
                     if cmd in ("/closeall", "/save", "/saveall"):
-                        # Hem CEO hem CFO'ya guvenli closema sinyali — paralel
+                        # Both CEO and CFO'ya guvenli closema sinyali — paralel
                         print_system("Guvenli closema broadcast: CEO + CFO + lower layers...")
                         close_msg = (
                             "This the session guvenli close: kendi lower katminstantdaki all agent'lara "

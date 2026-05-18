@@ -54,6 +54,12 @@ def _slugify(text: str) -> str:
 SYSTEM_PROMPT = """You are a TeamForge setup assistant. The user describes their project in 1-2 sentences. \
 You must produce a JSON object that defines a multi-agent team optimized for that project.
 
+CRITICAL: Every text field in the JSON (project.name, project.domain, project.summary, \
+tech_stack.*, every role's label/persona/responsibilities/delegation_notes/etc.) MUST be \
+written in ENGLISH. This rule holds regardless of the language the user used in their \
+project description. If the user wrote in Turkish, French, Spanish, or any other \
+language, you still produce English output.
+
 The JSON MUST be valid (no comments, no trailing commas) and follow this exact schema:
 
 {
@@ -61,7 +67,7 @@ The JSON MUST be valid (no comments, no trailing commas) and follow this exact s
     "name": "<short project name>",
     "domain": "<one of: fintech, ecommerce, saas, healthtech, edtech, devtools, social, gaming, ai_product, other>",
     "summary": "<one-paragraph summary>",
-    "compliance": ["<list of relevant compliance regimes, e.g. PCI-DSS, GDPR, HIPAA, SOC2 — may be empty>"]
+    "compliance": ["<list of relevant compliance regimes, e.g. PCI-DSS, GDPR, HIPAA, SOC2 - may be empty>"]
   },
   "tech_stack": {
     "backend": "<one-line tech choice>",
@@ -86,37 +92,74 @@ The JSON MUST be valid (no comments, no trailing commas) and follow this exact s
 
 Rules:
 - ALWAYS include exactly one ceo and one cfo as leaders (these are framework essentials).
-- Include 1 project_manager and 1 business_analyst or equivalent as leaders.
-- Include 1 tech_lead as a leader.
-- Include 3-7 workers (devs, testers, designers, ops) appropriate to the project.
-- Workers must have tier "worker" and writes_code-equivalent role.
+- Leaders have tier "leader", workers have tier "worker".
 - Leaders delegate to workers; workers do not delegate.
-- Total team size: 6-12 roles.
-- delegates_to should reflect realistic hierarchy: ceo -> [project_manager, cfo], pm -> [business_analyst, tech_lead], tech_lead -> [<workers>], etc.
+- delegates_to reflects realistic hierarchy: ceo -> [project_manager, cfo], pm -> [business_analyst, tech_lead], tech_lead -> [<workers>], etc.
+- Each role id appears at most once.
 
-Output ONLY the JSON. No prose before or next.
+{{SIZE_RULES}}
+
+Output ONLY the JSON. No prose before or after.
 """
 
 
-async def generate_team_async(description: str, api_key: str | None = None) -> dict[str, Any]:
-    """Anthropic API'ye call yapip JSON spec drecommend.
+async def generate_team_async(description: str, language: str = "English",
+                                size: str = "min",
+                                api_key: str | None = None) -> dict[str, Any]:
+    """Call the Anthropic API and return a JSON team spec.
 
-    Before try: anthropic SDK if exists it kullan.
-    Nonesa: urllib ile direct call.
+    Args:
+        description: 1-3 sentence project description from the user.
+        language: language for all generated content AND the runtime
+                  communication language of the agents.
+        size: "min" (lean MVP, 4-7 roles) or "max" (comprehensive, 8-14 roles).
+              "custom" maps to "max" — the user filters roles in the UI.
+        api_key: optional override (defaults to ANTHROPIC_API_KEY).
     """
     desc = (description or "").strip()
     if not desc:
-        raise ValueError("Proje description empty can't be")
+        raise ValueError("Project description cannot be empty")
+    lang = (language or "English").strip() or "English"
+    sz = (size or "min").strip().lower()
+    if sz == "custom":
+        sz = "max"
+    if sz not in ("min", "max"):
+        sz = "min"
     key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not key:
-        raise RuntimeError("ANTHROPIC_API_KEY env var bulunamadi")
+        raise RuntimeError("ANTHROPIC_API_KEY env var not found")
 
     model = os.environ.get("CLAUDE_MODEL_LEAD") or os.environ.get("CLAUDE_MODEL") or "claude-opus-4-6"
+
+    # Size-specific guidance injected into the prompt
+    if sz == "min":
+        size_rules = (
+            "Size: LEAN MVP team — output 4-7 roles total. The smallest team that can still "
+            "deliver the project end-to-end. Combine multiple skills per role when reasonable "
+            "(e.g. a single 'full_stack_dev' instead of separate frontend/backend). "
+            "Be ruthless about cutting roles that aren't strictly necessary."
+        )
+    else:
+        size_rules = (
+            "Size: COMPREHENSIVE team — output 8-14 roles total. A full team with specialized "
+            "coverage. Include dedicated business analyst, separate frontend/backend/mobile "
+            "developers, dedicated tester, devops, designer, and other specialists that earn "
+            "their seat for this specific project."
+        )
+
+    # Language directive on top of the base SYSTEM_PROMPT
+    system_with_lang = SYSTEM_PROMPT.replace("{{SIZE_RULES}}", size_rules).replace(
+        "MUST be \\\nwritten in ENGLISH",
+        f"MUST be \\\nwritten in {lang.upper()}"
+    ).replace(
+        "you still produce English output.",
+        f"you still produce {lang} output."
+    )
 
     payload = {
         "model": model,
         "max_tokens": 4096,
-        "system": SYSTEM_PROMPT,
+        "system": system_with_lang,
         "messages": [{"role": "user", "content": desc}],
     }
 
@@ -164,44 +207,62 @@ async def generate_team_async(description: str, api_key: str | None = None) -> d
     return spec
 
 
+def _validate_role(r: dict[str, Any], seen: set) -> None:
+    if not isinstance(r, dict):
+        raise ValueError("role entries must be dicts")
+    for f in ("id", "label", "tier", "model", "persona", "responsibilities"):
+        if f not in r:
+            raise ValueError(f"role '{r.get('id','?')}' is missing required field '{f}'")
+    if r.get("tier") not in ("leader", "worker"):
+        raise ValueError(f"role '{r['id']}' has invalid tier")
+    if r["id"] in seen:
+        raise ValueError(f"duplicate role id '{r['id']}'")
+    seen.add(r["id"])
+
+
 def _validate_spec(spec: dict[str, Any]) -> None:
     if not isinstance(spec, dict):
-        raise ValueError("Spec dict must be")
+        raise ValueError("Spec must be a dict")
     for k in ("project", "tech_stack", "roles"):
         if k not in spec:
-            raise ValueError(f"Spec'te '{k}' none")
+            raise ValueError(f"Spec is missing '{k}'")
     roles = spec.get("roles") or []
     if not isinstance(roles, list) or len(roles) < 3:
-        raise ValueError("En az 3 rol required")
-    role_ids = set()
+        raise ValueError("Spec must contain at least 3 roles")
+    seen: set = set()
     for r in roles:
-        if not isinstance(r, dict): raise ValueError("Rol dict must be")
-        for f in ("id", "label", "tier", "model", "persona", "responsibilities"):
-            if f not in r: raise ValueError(f"Rolde '{f}' none: {r.get('id', '?')}")
-        if r.get("tier") not in ("leader", "worker"):
-            raise ValueError(f"tier 'leader' or 'worker' must be: {r.get('id')}")
-        if r["id"] in role_ids:
-            raise ValueError(f"Tekrarlanan rol id: {r['id']}")
-        role_ids.add(r["id"])
+        _validate_role(r, seen)
+    # CEO + CFO must exist
+    ids = {r["id"] for r in roles}
+    for required in ("ceo", "cfo"):
+        if required not in ids:
+            raise ValueError(f"Spec is missing required role '{required}'")
 
 
-def render_prompt(role: dict[str, Any], template: str) -> str:
-    """Base template'i rol vaccessyle fill."""
+def render_prompt(role: dict[str, Any], template: str,
+                  language: str = "English") -> str:
+    """Fill the base template with role data, delegation notes, language directive."""
     resp = role.get("responsibilities") or []
     resp_md = "\n".join(f"{i+1}. {r}" for i, r in enumerate(resp))
     delegates = role.get("delegates_to") or []
     if delegates:
         del_notes = (role.get("delegation_notes") or
-                     f"That rolesi delege you do: {', '.join(delegates)}.")
-        del_notes += f"\n\n`delegate.to_<role>(payload)` tool'unu kullan."
+                     f"You delegate work to: {', '.join(delegates)}.")
+        del_notes += "\n\nUse the `delegate.to_<role>(payload)` tool."
     else:
-        del_notes = "This rol delegation doesn't do; kendi gorevini bizzat yurutur."
+        del_notes = "This role does not delegate; you carry out your own work directly."
 
     extra = ""
     if role.get("id") == "ceo":
-        extra = "\n\n## Budget yonetimi\n\nOwner 'budget nadelete?' derse `analytics.usage_check` and `budget.get_report` iki suddenly call."
+        extra = ("\n\n## Budget management\n\n"
+                 "When the user asks about budget, call BOTH `analytics.usage_check` "
+                 "(real Anthropic spend) and `budget.get_report` (local cap) and "
+                 "report them together.")
     elif role.get("id") == "cfo":
-        extra = "\n\n## Mali tablo\n\nFP&A, unit economics, runway hesaplari your sorumluluday."
+        extra = ("\n\n## Financial reporting\n\n"
+                 "FP&A, unit economics, runway projections are your responsibility. "
+                 "Pull real spend via `analytics.usage_check` and reconcile with "
+                 "`budget.sync_from_analytics`.")
 
     text = (template
             .replace("{{ROLE_LABEL}}", role.get("label", role["id"]))
@@ -210,35 +271,66 @@ def render_prompt(role: dict[str, Any], template: str) -> str:
             .replace("{{RESPONSIBILITIES}}", resp_md)
             .replace("{{DELEGATION_NOTES}}", del_notes)
             .replace("{{BUDGET_HINTS}}",
-                     "BUTCE UYARISI / HARD BLOCK"
-                     if role.get("tier") == "leader" else "PM over"))
-    text = text.replace("{{EXTRA_SECTIONS}}", extra)
+                     "BUDGET WARNING / HARD BLOCK"
+                     if role.get("tier") == "leader" else "PM forwards budget alerts"))
+    # Language section — drives runtime communication style
+    lang_section = (
+        f"\n\n## Communication language\n\n"
+        f"All your responses, internal reasoning summaries, tool outputs, briefs, "
+        f"and decisions MUST be written in **{language}**. The user and the rest "
+        f"of the team will read your output in {language}. If you receive a "
+        f"message in another language, still respond in {language}."
+    )
+    text = text.replace("{{EXTRA_SECTIONS}}", extra + lang_section)
     return text
 
 
-def save_spec(spec: dict[str, Any]) -> dict[str, Any]:
-    """Spec'i config/ and prompts/ filelarina write, setup_complete bayragini koy.
+def save_spec(spec: dict[str, Any], language: str = "English",
+              monthly_budget: float = 100.0,
+              selected_role_ids: list[str] | None = None) -> dict[str, Any]:
+    """Save the approved spec to config/ and prompts/.
 
-    Returns: written files list (debug for).
+    Args:
+        spec: dict with shape {"project": ..., "tech_stack": ..., "roles": [...]}
+        language: communication language for the agents
+        monthly_budget: USD cap for config/budget.yaml
+        selected_role_ids: if provided (custom mode), only these role ids are
+                           installed. CEO and CFO are always included.
     """
+    if "roles" not in spec or not isinstance(spec["roles"], list):
+        raise ValueError("Spec must contain a 'roles' list")
+
+    all_roles = spec["roles"]
+    if selected_role_ids is not None:
+        wanted = set(selected_role_ids) | {"ceo", "cfo"}  # CEO+CFO mandatory
+        roles_to_install = [r for r in all_roles if r.get("id") in wanted]
+    else:
+        roles_to_install = all_roles
+
+    if len(roles_to_install) < 3:
+        raise ValueError("Selected team must include at least 3 roles")
+    role_ids = {r["id"] for r in roles_to_install}
+    for required in ("ceo", "cfo"):
+        if required not in role_ids:
+            raise ValueError(f"Required role '{required}' missing from selection")
+
     PROMPTS_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    written = []
+    written: list[str] = []
 
     # 1) prompts/<role>.md
-    for role in spec["roles"]:
+    for role in roles_to_install:
         rid = _slugify(role["id"])
         role["id"] = rid
-        path = PROMPTS_DIR / f"{rid}.md"
-        path.write_text(render_prompt(role, template), encoding="utf-8")
-        written.append(str(path.relative_to(PROJECT_ROOT)))
+        (PROMPTS_DIR / f"{rid}.md").write_text(render_prompt(role, template, language), encoding="utf-8")
+        written.append(f"prompts/{rid}.md")
 
     # 2) config/team.yaml
-    team_roles = {}
-    for role in spec["roles"]:
+    team_roles: dict[str, dict] = {}
+    for role in roles_to_install:
         rid = role["id"]
         model_env = "${CLAUDE_MODEL_LEAD}" if role["tier"] == "leader" else "${CLAUDE_MODEL}"
         team_roles[rid] = {
@@ -248,35 +340,31 @@ def save_spec(spec: dict[str, Any]) -> dict[str, Any]:
             "profile": role.get("persona", ""),
             "tier": role["tier"],
         }
-    team_doc = {"roles": team_roles}
     (CONFIG_DIR / "team.yaml").write_text(
-        "# TeamForge team kompozisyonu — setup wizard tarafindan uretildi\n" +
-        yaml.safe_dump(team_doc, sort_keys=False, allow_unicode=True),
+        "# TeamForge team composition - generated by the setup wizard\n" +
+        yaml.safe_dump({"roles": team_roles}, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     written.append("config/team.yaml")
 
     # 3) config/tech_stack.yaml
     project = spec.get("project", {})
-    ts = spec.get("tech_stack", {})
-    tech_doc = {
-        "project": {
-            "name": project.get("name", "TeamForge Project"),
-            "domain": project.get("domain", "general"),
-            "summary": project.get("summary", ""),
-            "compliance": project.get("compliance", []),
-        },
-        "tech_stack": ts,
-    }
     (CONFIG_DIR / "tech_stack.yaml").write_text(
-        "# TeamForge teknoloji stack — setup wizard tarafindan uretildi\n" +
-        yaml.safe_dump(tech_doc, sort_keys=False, allow_unicode=True),
+        "# TeamForge tech stack - generated by the setup wizard\n" +
+        yaml.safe_dump({
+            "project": {
+                "name": project.get("name", "TeamForge Project"),
+                "domain": project.get("domain", "general"),
+                "summary": project.get("summary", ""),
+                "compliance": project.get("compliance", []),
+            },
+            "tech_stack": spec.get("tech_stack", {}),
+        }, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     written.append("config/tech_stack.yaml")
 
-    # 4) config/policies.yaml — defaults korunsun, roles addnsin
-    existing = {}
+    # 4) config/policies.yaml - keep _defaults, replace roles
     try:
         existing = yaml.safe_load((CONFIG_DIR / "policies.yaml").read_text(encoding="utf-8")) or {}
     except Exception:
@@ -284,24 +372,21 @@ def save_spec(spec: dict[str, Any]) -> dict[str, Any]:
     defaults = existing.get("_defaults") or {}
     leader_baseline = (defaults.get("leader") or {}).get("tools_baseline") or []
     worker_baseline = (defaults.get("worker") or {}).get("tools_baseline") or []
-
-    new_roles_policies = {}
-    for role in spec["roles"]:
+    new_policies: dict[str, dict] = {}
+    for role in roles_to_install:
         rid = role["id"]
         is_leader = role["tier"] == "leader"
-        baseline = leader_baseline if is_leader else worker_baseline
-        tools = list(baseline)
+        tools = list(leader_baseline if is_leader else worker_baseline)
         if is_leader:
             tools += [f"delegate.to_{d}" for d in (role.get("delegates_to") or [])]
         if rid == "ceo":
-            tools += ["budget.get_report", "budget.log_expense",
-                      "budget.sync_from_analytics", "budget.request_user_approval",
-                      "analytics.usage_check", "analytics.cost_report",
-                      "analytics.usage_report"]
+            tools += ["budget.get_report", "budget.log_expense", "budget.sync_from_analytics",
+                      "budget.request_user_approval", "analytics.usage_check",
+                      "analytics.cost_report", "analytics.usage_report"]
         elif rid == "cfo":
             tools += ["analytics.usage_check", "analytics.cost_report",
                       "analytics.usage_report", "budget.sync_from_analytics"]
-        new_roles_policies[rid] = {
+        new_policies[rid] = {
             "delegate_to": role.get("delegates_to") or [],
             "can_request_new_agent": is_leader,
             "can_approve_budget": rid == "ceo",
@@ -310,22 +395,45 @@ def save_spec(spec: dict[str, Any]) -> dict[str, Any]:
             "allow_subagent_spawn": is_leader,
             "tools": tools,
         }
-    existing["roles"] = new_roles_policies
+    existing["roles"] = new_policies
     (CONFIG_DIR / "policies.yaml").write_text(
-        "# Hierarchy and permission policies — setup wizard tarafindan uretildi\n" +
+        "# Hierarchy and permissions policies - generated by the setup wizard\n" +
         yaml.safe_dump(existing, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     written.append("config/policies.yaml")
 
-    # 5) setup_complete flag
+    # 5) config/budget.yaml - update monthly_cap
+    try:
+        budget_doc = yaml.safe_load((CONFIG_DIR / "budget.yaml").read_text(encoding="utf-8")) or {}
+    except Exception:
+        budget_doc = {}
+    budget_doc.setdefault("currency", "USD")
+    budget_doc.setdefault("totals", {})
+    budget_doc["totals"]["monthly_cap"] = float(monthly_budget)
+    budget_doc["totals"].setdefault("soft_warning_at", 0.75)
+    budget_doc["totals"].setdefault("hard_block_at", 0.95)
+    budget_doc.setdefault("thresholds", {"single_decision_cap": max(10.0, float(monthly_budget) * 0.5)})
+    budget_doc.setdefault("agent_costs_monthly", {})
+    (CONFIG_DIR / "budget.yaml").write_text(
+        "# TeamForge budget settings - monthly_cap set via setup wizard\n" +
+        yaml.safe_dump(budget_doc, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+    written.append("config/budget.yaml")
+
+    # 6) state/setup_complete.json
     SETUP_FLAG.write_text(json.dumps({
         "completed": True,
         "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "project_name": project.get("name", ""),
         "domain": project.get("domain", ""),
-        "role_count": len(spec["roles"]),
+        "language": language,
+        "monthly_budget": float(monthly_budget),
+        "role_count": len(roles_to_install),
+        "selected_from_custom": selected_role_ids is not None,
     }, indent=2), encoding="utf-8")
     written.append("state/setup_complete.json")
 
-    return {"written": written, "role_count": len(spec["roles"])}
+    return {"written": written, "role_count": len(roles_to_install),
+            "monthly_budget": float(monthly_budget), "language": language}

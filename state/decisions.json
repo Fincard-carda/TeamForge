@@ -1,0 +1,12 @@
+{
+  "decisions": [
+    {
+      "ts": "2026-05-18T00:36:33Z",
+      "title": "BUDGET HARD BLOCK — All New Spending Halted",
+      "author_role": "ceo",
+      "context": "Anthropic Admin API confirms $135.52 real spend against $100/month cap (135.5%). Local budget tracker was desynced at $0. Alert triggered by user. Opus-4 accounts for 73.5% of all token usage.",
+      "decision": "1) HALT all new API spending immediately — no new delegations to Tech Lead or CFO. 2) No active async jobs or tasks found to cancel. 3) Sync local ledger to real numbers. 4) Escalate to user for approval on next steps: raise cap, freeze until next cycle, or optimize model mix.",
+      "consequences": "All TeamForge development work is paused until user provides budget guidance. MVP timeline will slip if freeze continues. If cap is raised or model mix shifts to Haiku/Sonnet, work can resume at lower burn rate."
+    }
+  ]
+}

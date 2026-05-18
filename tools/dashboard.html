@@ -284,16 +284,60 @@
 <!-- TeamForge setup wizard overlay (first acilista gozukur) -->
 <div id="setup-overlay" style="display:none; position:fixed; inset:0; background:#0d1117; z-index:10000; overflow-y:auto; user-select:text;">
   <div style="max-width:760px; margin:60px auto; padding:32px; background:#161b22; border:1px solid #30363d; border-radius:12px;">
-    <div style="margin-bottom:24px;">
+    <div id="setup-header" style="margin-bottom:24px;">
       <h1 style="margin:0 0 8px; color:#f0f6fc; font-size:24px;">TeamForge Setup</h1>
-      <p style="color:#8b949e; margin:0;">Which turn proje on calisacaksin? A few cumleyle anlat — Claude to you uyday agent teamini and teknoloji yiginini recommendecek.</p>
+      <p style="color:#8b949e; margin:0;">What kind of project will you work on? Describe it in a few sentences — Claude will recommend an appropriate agent team and tech stack.</p>
     </div>
 
     <div id="setup-step-1">
+      <label style="display:block; color:#c9d1d9; font-size:13px; margin-bottom:6px;">Agent communication language</label>
+      <select id="setup-language" style="width:100%; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit; margin-bottom:16px;">
+        <option value="English" selected>English</option>
+        <option value="Turkish">Turkish (T&uuml;rk&ccedil;e)</option>
+        <option value="Spanish">Spanish (Espa&ntilde;ol)</option>
+        <option value="French">French (Fran&ccedil;ais)</option>
+        <option value="German">German (Deutsch)</option>
+        <option value="Italian">Italian (Italiano)</option>
+        <option value="Portuguese">Portuguese (Portugu&ecirc;s)</option>
+        <option value="Dutch">Dutch (Nederlands)</option>
+        <option value="Polish">Polish (Polski)</option>
+        <option value="Russian">Russian (&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;)</option>
+        <option value="Japanese">Japanese (&#26085;&#26412;&#35486;)</option>
+        <option value="Chinese">Chinese (&#20013;&#25991;)</option>
+        <option value="Korean">Korean (&#54620;&#44397;&#50612;)</option>
+        <option value="Arabic">Arabic (&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;)</option>
+      </select>
+      <div style="margin-top:-12px; margin-bottom:16px; color:#6e7681; font-size:11px;">All agent responses, briefs, and tool outputs will be written in this language.</div>
+
       <label style="display:block; color:#c9d1d9; font-size:13px; margin-bottom:6px;">Project description</label>
       <textarea id="setup-description" rows="5" placeholder="Example 1: B2B SaaS — team management platform, web + API, GDPR compliant, Stripe integration.&#10;Example 2: Mobile health app, iOS + Android, HIPAA, targeting 10K users.&#10;Example 3: E-commerce marketplace, web + admin panel, COD + card, TR market."
         style="width:100%; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:10px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
-      <div style="margin-top:6px; color:#6e7681; font-size:11px;">What until somut yazarsan agent teami o until on-point happens. Typical: 50-200 words.</div>
+      <div style="margin-top:6px; color:#6e7681; font-size:11px;">The more concrete you are, the more on-point your team will be. Typical: 50-200 words.</div>
+
+      <label style="display:block; color:#c9d1d9; font-size:13px; margin-bottom:6px; margin-top:18px;">Team size</label>
+      <div id="setup-size-radio" style="display:flex; gap:8px; margin-bottom:6px;">
+        <label style="flex:1; background:#0d1117; border:2px solid #56d364; border-radius:6px; padding:10px; cursor:pointer; user-select:none;">
+          <input type="radio" name="setup-size" value="min" checked style="margin-right:6px;">
+          <strong style="color:#56d364">Lean MVP</strong>
+          <div style="color:#8b949e;font-size:11px;margin-top:2px;">4-7 roles, minimum viable.</div>
+        </label>
+        <label style="flex:1; background:#0d1117; border:2px solid #30363d; border-radius:6px; padding:10px; cursor:pointer; user-select:none;">
+          <input type="radio" name="setup-size" value="max" style="margin-right:6px;">
+          <strong style="color:#bc8cff">Comprehensive</strong>
+          <div style="color:#8b949e;font-size:11px;margin-top:2px;">8-14 roles, full coverage.</div>
+        </label>
+        <label style="flex:1; background:#0d1117; border:2px solid #30363d; border-radius:6px; padding:10px; cursor:pointer; user-select:none;">
+          <input type="radio" name="setup-size" value="custom" style="margin-right:6px;">
+          <strong style="color:#f78166">Custom</strong>
+          <div style="color:#8b949e;font-size:11px;margin-top:2px;">Pick the roles yourself.</div>
+        </label>
+      </div>
+      <div style="margin-bottom:14px; color:#6e7681; font-size:11px;">Custom: Claude proposes a broad team, you tick the roles you want. CEO and CFO are mandatory.</div>
+
+      <label style="display:block; color:#c9d1d9; font-size:13px; margin-bottom:6px; margin-top:18px;">Monthly budget (USD)</label>
+      <input id="setup-monthly-budget" type="number" min="10" max="100000" step="1" value="100"
+        style="width:100%; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:8px 10px; font-size:13px; font-family:inherit;">
+      <div style="margin-top:6px; color:#6e7681; font-size:11px;">Hard cap for Anthropic API spend. The CEO agent is alerted at 75%% and blocked at 95%%. You can change this later in <code>config/budget.yaml</code>.</div>
 
       <div style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end; align-items:center;">
         <span id="setup-status" style="color:#8b949e; font-size:11px; flex:1;"></span>
@@ -307,11 +351,11 @@
         <div id="setup-preview-project" style="color:#f0f6fc; font-size:14px;"></div>
       </div>
       <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:16px; margin-bottom:16px;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:4px;">Teknoloji stack</div>
+        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:4px;">Tech stack</div>
         <div id="setup-preview-tech" style="color:#c9d1d9; font-size:12px; line-height:1.6;"></div>
       </div>
       <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:16px; margin-bottom:16px;">
-        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:8px;">Recommendilen agent teami</div>
+        <div style="color:#8b949e; font-size:11px; text-transform:uppercase; margin-bottom:8px;">Recommended agent team</div>
         <div id="setup-preview-roles"></div>
       </div>
 
@@ -324,8 +368,8 @@
     <div id="setup-step-3" style="display:none; text-align:center;">
       <div style="font-size:48px;">OK</div>
       <h2 style="color:#3fb950; margin:8px 0;">Setup complete</h2>
-      <p style="color:#8b949e;">Orchestrator'i again start (Ctrl+C, next <code>python -m orchestrator</code>). Your agent team is ready.</p>
-      <button onclick="window.location.reload()" style="background:#1f6feb; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; margin-top:16px;">Dashboard'a git</button>
+      <p style="color:#8b949e;">Restart the orchestrator (Ctrl+C, then <code>python -m orchestrator</code>). Your agent team is ready.</p>
+      <button onclick="window.location.reload()" style="background:#1f6feb; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; margin-top:16px;">Go to dashboard</button>
     </div>
   </div>
 </div>
@@ -667,7 +711,7 @@ function renderCanvas() {
     }
   });
   if (!visible.length) {
-    canvas.innerHTML = '<div style="padding:40px;text-align:center;color:#6e7681">Not yet active agent none. Asagidaki chat\'ten CEO\' message at.</div>';
+    canvas.innerHTML = '<div style="padding:40px;text-align:center;color:#6e7681">No active agents yet. Send a message to the CEO from the chat bar below.</div>';
   }
   ensureCanvasHeight();
 }
@@ -704,7 +748,7 @@ function autoTile(opts) {
 
 // Window resize -> debounce -> pinned excluded reflow
 let _resizeT = null;
-window.addEventLherener("resize", () => {
+window.addEventListener("resize", () => {
   if (_resizeT) clearTimeout(_resizeT);
   _resizeT = setTimeout(() => { autoTile({ keepPinned: true }); }, 180);
 });
@@ -765,7 +809,7 @@ function createAgentPanel(role) {
 
   attachDragMove(panel);
   attachResize(panel);
-  panel.addEventLherener("mousedown", () => focusPanel(panel));
+  panel.addEventListener("mousedown", () => focusPanel(panel));
   const body = panel.querySelector("[data-body]");
   const msgs = agentState[role].messages;
   if (msgs.length) {
@@ -796,7 +840,7 @@ function updatePanelHeader(panel, role) {
 
 function attachDragMove(panel) {
   const header = panel.querySelector("[data-drag]");
-  header.addEventLherener("mousedown", (e) => {
+  header.addEventListener("mousedown", (e) => {
     if (e.target.closest(".pin-btn, .close-btn, .resize-handle")) return;
     e.preventDefault(); panel.classList.add("dragging"); focusPanel(panel);
     const startX = e.clientX, startY = e.clientY;
@@ -809,21 +853,21 @@ function attachDragMove(panel) {
     }
     function onUp() {
       panel.classList.remove("dragging");
-      document.removeEventLherener("mousemove", onMove);
-      document.removeEventLherener("mouseup", onUp);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
       panelLayout[role] = {
         x: parseInt(panel.style.left), y: parseInt(panel.style.top),
         w: parseInt(panel.style.width), h: parseInt(panel.style.height),
       };
       savePrefs();
     }
-    document.addEventLherener("mousemove", onMove);
-    document.addEventLherener("mouseup", onUp);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   });
 }
 function attachResize(panel) {
   const handle = panel.querySelector("[data-resize]");
-  handle.addEventLherener("mousedown", (e) => {
+  handle.addEventListener("mousedown", (e) => {
     e.preventDefault(); e.stopPropagation(); focusPanel(panel);
     const startX = e.clientX, startY = e.clientY;
     const startW = panel.offsetWidth, startH = panel.offsetHeight;
@@ -833,16 +877,16 @@ function attachResize(panel) {
       panel.style.height = Math.max(160, startH + ev.clientY - startY) + "px";
     }
     function onUp() {
-      document.removeEventLherener("mousemove", onMove);
-      document.removeEventLherener("mouseup", onUp);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
       panelLayout[role] = {
         x: parseInt(panel.style.left), y: parseInt(panel.style.top),
         w: parseInt(panel.style.width), h: parseInt(panel.style.height),
       };
       savePrefs();
     }
-    document.addEventLherener("mousemove", onMove);
-    document.addEventLherener("mouseup", onUp);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   });
 }
 
@@ -851,7 +895,7 @@ function attachSplitter() {
   const splitter = document.getElementById("splitter");
   if (!splitter) return;
   document.documentElement.style.setProperty("--sidebar-w", sidebarW + "px");
-  splitter.addEventLherener("mousedown", (e) => {
+  splitter.addEventListener("mousedown", (e) => {
     e.preventDefault();
     splitter.classList.add("dragging");
     function onMove(ev) {
@@ -863,11 +907,11 @@ function attachSplitter() {
       splitter.classList.remove("dragging");
       savePrefs();
       if (typeof autoTile === "function") autoTile({ keepPinned: true });
-      document.removeEventLherener("mousemove", onMove);
-      document.removeEventLherener("mouseup", onUp);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
     }
-    document.addEventLherener("mousemove", onMove);
-    document.addEventLherener("mouseup", onUp);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   });
 }
 
@@ -1053,10 +1097,10 @@ async function loadAnalytics(force) {
 
     // 1) Admin key none / error state — reason + solution
     if (d.ok === false || (d.error && !d.cost)) {
-      analyticsMeta.textContent = "Admin API doesn't access";
+      analyticsMeta.textContent = "Admin API not accessible";
       analyticsBody.innerHTML = `
         <div style="background:#21262d;border-left:3px solid #ff7b72;padding:14px 18px;border-radius:6px;">
-          <div style="color:#ff7b72;font-weight:600;margin-bottom:8px;">Anthropic Admin API doesn't access</div>
+          <div style="color:#ff7b72;font-weight:600;margin-bottom:8px;">Anthropic Admin API not accessible</div>
           <div style="color:#c9d1d9;margin-bottom:10px;">${escHtml(d.error || "Bilinmeyen error")}</div>
           ${d.hint ? `<div style="color:#8b949e;font-size:11px;line-height:1.6;">${escHtml(d.hint)}</div>` : ""}
           <div style="margin-top:14px;padding:10px;background:#0d1117;border-radius:4px;font-size:11px;color:#8b949e;">
@@ -1089,7 +1133,7 @@ async function loadAnalytics(force) {
     // 4) KPI cards
     let html = '<div class="a-grid4" style="margin-bottom:18px;">';
     if (costErr) {
-      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Cost HATA</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(costErr).slice(0,120)}</div></div>`;
+      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Cost ERROR</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(costErr).slice(0,120)}</div></div>`;
     } else {
       html += `<div class="a-card"><div class="label">Total Cost</div><div class="val">${currency} ${(cost.total || 0).toFixed(4)}</div></div>`;
       // Daily ortalama: only spend olan day sayisina bol (days_with_data)
@@ -1099,7 +1143,7 @@ async function loadAnalytics(force) {
       html += `<div class="a-card"><div class="label">Daily Ortalama (${escHtml(avgLabel)})</div><div class="val">${currency} ${avgVal.toFixed(4)}</div></div>`;
     }
     if (usageErr) {
-      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Token HATA</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(usageErr).slice(0,120)}</div></div>`;
+      html += `<div class="a-card" style="grid-column:span 2"><div class="label" style="color:#ff7b72">Token ERROR</div><div class="val" style="font-size:11px;color:#ff7b72">${escHtml(usageErr).slice(0,120)}</div></div>`;
     } else {
       html += `<div class="a-card"><div class="label">Total Token</div><div class="val">${fmtNum(totalTokens)}</div></div>`;
       const cacheColor = cacheHitRate > 50 ? "#3fb950" : cacheHitRate > 20 ? "#f78166" : "#ff7b72";
@@ -1165,7 +1209,7 @@ async function loadAnalytics(force) {
       html += '<li>Errorli date range (last 30 day empty olabilir)</li>';
       html += '</ol></div>';
     }
-    // Diagnostic kutusu — HER ZAMAN görünür, total value's dogrulugunu check etmek for critical
+    // Diagnostic kutusu — HER ZAMAN görünür, total verifying the accuracy of the values
     html += '<div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;margin-bottom:12px;">';
     html += '<div style="color:#8b949e;font-size:11px;margin-bottom:6px;">';
     html += `<strong style="color:#c9d1d9;">Diagnostic:</strong> cost buckets=${escHtml(String(cost.raw_buckets||0))} (non-empty=${escHtml(String(cost.raw_non_empty_buckets||0))}, dup=${escHtml(String(cost.raw_duplicate_buckets||0))}) · `;
@@ -1212,12 +1256,12 @@ async function loadWorkspacesDebug() {
     let html = '<div style="background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:14px;margin-bottom:14px;">';
     html += '<div style="color:#f78166;font-weight:600;margin-bottom:8px;font-size:13px;">Admin Key Debug Diagnosisi</div>';
     if (d.error) {
-      html += `<div style="color:#ff7b72;margin-bottom:8px;">HATA: ${escHtml(d.error)}</div>`;
+      html += `<div style="color:#ff7b72;margin-bottom:8px;">ERROR: ${escHtml(d.error)}</div>`;
       html += '<div style="color:#8b949e;font-size:11px;">.env filesinda ANTHROPIC_ADMIN_API_KEY defined not or invalid.</div>';
     } else {
       html += `<div style="color:#c9d1d9;margin-bottom:10px;">Admin key <strong style="color:#3fb950">${d.count || 0}</strong> workspace goruyor.</div>`;
       if ((d.workspaces || []).length === 0) {
-        html += '<div style="color:#f78166;font-size:12px;">Workspace none — this admin key empty bir org\'a ait olabilir.</div>';
+        html += '<div style="color:#f78166;font-size:12px;">No workspaces — this admin key may belong to an empty org.</div>';
       } else {
         html += '<table class="md-table" style="font-size:11px;width:100%;">';
         html += '<thead><tr><th>Workspace Adi</th><th>ID</th></tr></thead><tbody>';
@@ -1228,8 +1272,8 @@ async function loadWorkspacesDebug() {
       }
       html += '<div style="margin-top:14px;padding:10px;background:#21262d;border-radius:4px;font-size:11px;color:#8b949e;">';
       html += '<strong style="color:#c9d1d9;">Nadelete is read?</strong><br>';
-      html += '1. Standart API key\'i's (sk-ant-api03-...) ait being org ile <strong>same org\'da</strong> mi this workspace list? Console > Settings > Workspaces ile compare.<br>';
-      html += '2. Org farkliysa: yeni admin key\'i <strong>standart key\'in being org\'da</strong> createmalisin. Aksi halde cost_report empty drecommend.<br>';
+      html += '1. Is this workspace list in the <strong>same org</strong> as your standard API key (sk-ant-api03-...)? Compare with Console > Settings > Workspaces.<br>';
+      html += '2. If the orgs differ: create a new admin key in the <strong>same org as the standard key</strong>. Otherwise cost_report returns empty.<br>';
       html += '3. Workspace list empty: admin key invalid or org empty olabilir.';
       html += '</div>';
     }
@@ -1244,7 +1288,7 @@ async function loadWorkspacesDebug() {
   }
 }
 document.getElementById("analytics-workspaces").onclick = loadWorkspacesDebug;
-analyticsModal.addEventLherener("click", (e) => {
+analyticsModal.addEventListener("click", (e) => {
   // Kopyala button — pre insidegini clipboard'a kopyala
   if (e.target.classList.contains("copy-btn")) {
     e.preventDefault(); e.stopPropagation();
@@ -1304,7 +1348,7 @@ async function sendChat() {
   }
 }
 chatBtn.onclick = sendChat;
-chatInput.addEventLherener("keydown", (e) => {
+chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
 const _chatTarget = document.getElementById("chat-target");
@@ -1318,7 +1362,7 @@ if (_chatTarget) {
       label.style.color = (t === "CFO") ? "#a371f7" : "#bc8cff";
     }
   }
-  _chatTarget.addEventLherener("change", _refreshChatLabel);
+  _chatTarget.addEventListener("change", _refreshChatLabel);
   _refreshChatLabel();
 }
 
@@ -1371,17 +1415,38 @@ chatInput.focus();
 })();
 
 let _setupSpec = null;
-document.getElementById("setup-generate-btn").addEventLherener("click", async () => {
+let _selectedSize = "min";
+let _selectedRoleIds = null;
+// Visual feedback on radio change
+document.querySelectorAll('input[name="setup-size"]').forEach(rb => {
+  rb.addEventListener("change", () => {
+    document.querySelectorAll('#setup-size-radio label').forEach(l => {
+      const r = l.querySelector('input[type=radio]');
+      if (r && r.checked) {
+        const v = r.value;
+        l.style.borderColor = v === "min" ? "#56d364" : v === "max" ? "#bc8cff" : "#f78166";
+      } else {
+        l.style.borderColor = "#30363d";
+      }
+    });
+  });
+});
+
+document.getElementById("setup-generate-btn").addEventListener("click", async () => {
   const btn = document.getElementById("setup-generate-btn");
   const desc = document.getElementById("setup-description").value.trim();
   const status = document.getElementById("setup-status");
-  if (!desc) { status.textContent = "Lutfen proje description write."; return; }
+  if (!desc) { status.textContent = "Please describe your project."; return; }
   btn.disabled = true; btn.textContent = "Generating (15-30s)...";
-  status.style.color = "#8b949e"; status.textContent = "Claude analiz doing...";
+  status.style.color = "#8b949e"; status.textContent = "Claude is analyzing...";
   try {
+    const language = (document.getElementById("setup-language") || {value: "English"}).value || "English";
+    const sizeEl = document.querySelector('input[name="setup-size"]:checked');
+    const size = (sizeEl && sizeEl.value) || "min";
+    _selectedSize = size;
     const r = await fetch("/api/setup/generate", {
       method: "POST", headers: {"content-type": "application/json"},
-      body: JSON.stringify({description: desc}),
+      body: JSON.stringify({description: desc, language: language, size: size}),
     });
     const d = await r.json();
     if (!d.ok) throw new Error(d.error || "Bilinmeyen error");
@@ -1407,38 +1472,91 @@ function renderSetupPreview(spec) {
   document.getElementById("setup-preview-tech").innerHTML =
     Object.entries(ts).filter(([k,v]) => v).map(([k,v]) =>
       `<div><strong style="color:#79c0ff">${k}:</strong> ${v}</div>`).join("");
+
+  const roles = spec.roles || [];
+  const isCustom = _selectedSize === "custom";
   const rolesDiv = document.getElementById("setup-preview-roles");
   rolesDiv.innerHTML = "";
-  for (const role of spec.roles || []) {
-    const c = role.tier === "leader" ? "#bc8cff" : "#56d364";
-    const card = document.createElement("div");
-    card.style.cssText = "background:#161b22; border-left:3px solid "+c+"; border-radius:4px; padding:10px 12px; margin-bottom:6px;";
-    card.innerHTML =
-      `<div style="font-weight:600; color:${c}">${role.label} <span style="color:#6e7681;font-weight:400;font-size:11px">(${role.tier}, ${role.model})</span></div>` +
+
+  // Header info about the mode
+  const header = document.createElement("div");
+  header.style.cssText = "color:#8b949e;font-size:11px;margin-bottom:10px;";
+  if (isCustom) {
+    header.innerHTML = `<strong style="color:#f78166">Custom mode:</strong> tick the roles you want. CEO and CFO are mandatory and locked.`;
+  } else {
+    const color = _selectedSize === "min" ? "#56d364" : "#bc8cff";
+    const label = _selectedSize === "min" ? "Lean MVP team" : "Comprehensive team";
+    header.innerHTML = `<strong style="color:${color}">${label}</strong> · ${roles.length} roles`;
+  }
+  rolesDiv.appendChild(header);
+
+  _selectedRoleIds = isCustom ? new Set(["ceo", "cfo"]) : null;
+
+  roles.forEach(role => {
+    const isMandatory = role.id === "ceo" || role.id === "cfo";
+    const color = role.tier === "leader" ? "#bc8cff" : "#56d364";
+    const card = document.createElement("label");
+    card.style.cssText = `display:flex; align-items:flex-start; gap:10px; background:#161b22; border-left:3px solid ${color}; border-radius:4px; padding:10px 12px; margin-bottom:6px; ${isCustom ? "cursor:pointer;" : ""}`;
+
+    if (isCustom) {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = role.id;
+      cb.checked = true;       // default: hepsi secili
+      cb.disabled = isMandatory;
+      if (isMandatory) cb.title = "Mandatory role";
+      cb.style.cssText = "margin-top:3px; flex-shrink:0;";
+      cb.addEventListener("change", () => {
+        if (cb.checked) _selectedRoleIds.add(role.id);
+        else _selectedRoleIds.delete(role.id);
+      });
+      // hepsi default secili oldugu icin set'i baslat
+      _selectedRoleIds.add(role.id);
+      card.appendChild(cb);
+    }
+
+    const body = document.createElement("div");
+    body.style.flex = "1";
+    body.innerHTML =
+      `<div style="font-weight:600; color:${color}">${role.label} <span style="color:#6e7681;font-weight:400;font-size:11px">(${role.tier}${isMandatory ? ", required" : ""}, ${role.model})</span></div>` +
       `<div style="color:#c9d1d9; font-size:11px; margin-top:4px;">${role.persona||""}</div>` +
       (role.delegates_to && role.delegates_to.length ?
         `<div style="color:#8b949e; font-size:10px; margin-top:4px;">Delegates to: ${role.delegates_to.join(", ")}</div>` : "");
+    card.appendChild(body);
     rolesDiv.appendChild(card);
-  }
+  });
 }
 
-document.getElementById("setup-back-btn").addEventLherener("click", () => {
+document.getElementById("setup-back-btn").addEventListener("click", () => {
   document.getElementById("setup-step-2").style.display = "none";
   document.getElementById("setup-step-1").style.display = "block";
 });
 
-document.getElementById("setup-save-btn").addEventLherener("click", async () => {
+document.getElementById("setup-save-btn").addEventListener("click", async () => {
   const btn = document.getElementById("setup-save-btn");
   btn.disabled = true; btn.textContent = "Kaydediing...";
   try {
+    const language = (document.getElementById("setup-language") || {value: "English"}).value || "English";
+    const budgetEl = document.getElementById("setup-monthly-budget");
+    const monthlyBudget = Number((budgetEl && budgetEl.value) || 100);
+    const body = {
+      spec: _setupSpec,
+      language: language,
+      monthly_budget: monthlyBudget,
+    };
+    if (_selectedSize === "custom" && _selectedRoleIds) {
+      body.selected_role_ids = Array.from(_selectedRoleIds);
+    }
     const r = await fetch("/api/setup/save", {
       method: "POST", headers: {"content-type": "application/json"},
-      body: JSON.stringify({spec: _setupSpec}),
+      body: JSON.stringify(body),
     });
     const d = await r.json();
     if (!d.ok) throw new Error(d.error || "Bilinmeyen error");
     document.getElementById("setup-step-2").style.display = "none";
     document.getElementById("setup-step-3").style.display = "block";
+    const hdr = document.getElementById("setup-header");
+    if (hdr) hdr.style.display = "none";
   } catch (e) {
     alert("Record errorsi: " + e.message);
     btn.disabled = false; btn.textContent = "Approve and install";
