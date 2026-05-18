@@ -187,7 +187,12 @@
   .msg.tool .tname { color: #d2a8ff; font-weight: 600; }
   .msg.tool .targs { color: #8b949e; margin-top: 3px; white-space: pre-wrap; word-break: break-all; max-height: 100px; overflow-y: auto; }
   .msg.tool .targs.collapsed { max-height: 0; overflow: hidden; margin-top: 0; }
-  .msg.tool .targs-toggle { color: #6e7681; font-size: 10px; cursor: pointer; margin-top: 2px; display: inline-block; }
+  .msg.tool .targs-toggle {
+    color: #6e7681; font-size: 10px; cursor: pointer; margin-left: 8px;
+    text-transform: lowercase; font-weight: 400; font-style: italic;
+    user-select: none;
+  }
+  .msg.tool .targs-toggle:hover { color: #79c0ff; text-decoration: underline; }
   .msg.enter, .msg.exit { background: transparent; color: #6e7681; font-size: 10px; text-align: center; padding: 2px 0; font-style: italic; }
   .msg .ts { color: #6e7681; font-size: 9px; margin-bottom: 2px; font-family: ui-monospace, monospace; }
 
@@ -448,28 +453,42 @@
 </div>
 
 <script>
-const ROLE_COLORS = {
-  ceo: "#bc8cff", cfo: "#a371f7", project_manager: "#58a6ff", business_analyst: "#39d0d8",
-  tech_lead: "#f78166",
-  android_dev: "#56d364", ios_dev: "#56d364", frontend_dev: "#56d364", backend_dev: "#56d364",
-  uiux_dev: "#ffd33d", mobile_tester: "#ff7b72", tester: "#ff7b72",
-  marketing_sales_specialist: "#ffa657",
-  devops_engineer: "#7ee787",
-};
-const ROLE_LABELS = {
-  ceo: "CEO", cfo: "CFO", project_manager: "Projectct Manager", business_analyst: "Business Analyst",
-  tech_lead: "Tech Lead",
-  android_dev: "Android Dev", ios_dev: "iOS Dev", frontend_dev: "Frontend Dev",
-  backend_dev: "Backend Dev", uiux_dev: "UI/UX Designer",
-  mobile_tester: "Mobilee QA", tester: "Web/API QA",
-  marketing_sales_specialist: "Marketing & Sales",
-  devops_engineer: "DevOps Engineer",
-};
-const LEADERSHIP = ["ceo", "cfo", "project_manager", "business_analyst", "tech_lead"];
-const WORKERS = ["android_dev", "ios_dev", "uiux_dev", "frontend_dev",
-                 "backend_dev", "mobile_tester", "tester",
-                 "marketing_sales_specialist", "devops_engineer"];
-const ALL_ROLES = [...LEADERSHIP, ...WORKERS];
+// Default color palette — assigned in order to discovered roles
+const COLOR_PALETTE = [
+  "#bc8cff", "#a371f7", "#58a6ff", "#39d0d8", "#f78166",
+  "#56d364", "#ffd33d", "#ff7b72", "#ffa657", "#7ee787",
+  "#79c0ff", "#d2a8ff", "#56d364", "#f0883e", "#3fb950",
+];
+// Filled at runtime from /api/state team_roles
+let ROLE_LABELS = {};
+let ROLE_COLORS = {};
+let LEADERSHIP = [];
+let WORKERS = [];
+let ALL_ROLES = [];
+
+function applyTeamRoles(teamRoles) {
+  if (!teamRoles || typeof teamRoles !== "object") return;
+  ROLE_LABELS = {};
+  ROLE_COLORS = {};
+  LEADERSHIP = [];
+  WORKERS = [];
+  let i = 0;
+  for (const [rid, info] of Object.entries(teamRoles)) {
+    ROLE_LABELS[rid] = info.label || rid;
+    ROLE_COLORS[rid] = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    if ((info.tier || "worker") === "leader") LEADERSHIP.push(rid);
+    else WORKERS.push(rid);
+    i++;
+  }
+  ALL_ROLES = [...LEADERSHIP, ...WORKERS];
+  // Re-seed agentState for any new roles
+  ALL_ROLES.forEach(r => {
+    if (!agentState[r]) agentState[r] = {
+      status: "idle", caller: null, last_at: null,
+      messages: [], has_history: false,
+    };
+  });
+}
 
 const PREFS_KEY = "teamforge_dashboard_prefs_v5";
 function loadPrefs() {
@@ -504,13 +523,97 @@ let autoscroll = true;
 let zCounter = 1;
 
 const agentState = {};
-ALL_ROLES.forEach(r => agentState[r] = {
-  status: "idle", caller: null, last_at: null,
-  messages: [], has_history: false,
-});
+// agentState is populated by applyTeamRoles() once /api/state arrives
 
 function fmtTs(epoch) { if (!epoch) return "—"; return new Date(epoch * 1000).toTimeString().slice(0, 8); }
 function escHtml(s) { return String(s).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"})[c]); }
+
+// Tool name mapping: raw MCP tool id -> human-friendly label.
+// Used in agent panels and live feed to replace technical identifiers
+// like "mcp__teamforge-ceo__usage_check" with "Checking Anthropic spend".
+const TOOL_LABEL_MAP = {
+  // Anthropic Admin API analytics
+  "usage_check": "Checking Anthropic spend",
+  "cost_report": "Pulling cost report",
+  "usage_report": "Pulling usage report",
+  "audit_log": "Reading admin API audit log",
+
+  // Budget
+  "get_report": "Reading local budget",
+  "log_expense": "Logging expense",
+  "sync_from_analytics": "Syncing local ledger from Anthropic",
+  "request_user_approval": "Requesting your approval",
+
+  // Knowledge / artifacts
+  "read_docs": "Reading docs",
+  "list_artifacts": "Listing artifacts",
+  "read_artifact": "Reading artifact",
+  "write_decision": "Recording decision",
+
+  // Briefs
+  "save": "Saving brief",
+  "load": "Loading brief",
+
+  // Code I/O
+  "read_file": "Reading file",
+  "write_file": "Writing file",
+  "list_dir": "Listing directory",
+
+  // Tasks / scrum
+  "create": "Creating task",
+  "update": "Updating task",
+  "read": "Reading task board",
+  "start_sprint": "Starting sprint",
+  "end_sprint": "Ending sprint",
+
+  // Visualization
+  "table": "Rendering table",
+  "kpi_card": "Rendering KPI card",
+  "chart_bar": "Drawing bar chart",
+  "chart_line": "Drawing line chart",
+
+  // Delegation inbox helpers
+  "check_result": "Checking delegated result",
+  "read_inbox": "Reading inbox",
+
+  // Built-in Claude Agent SDK tools
+  "ToolSearch": "Looking up tools",
+  "Read": "Reading file",
+  "Write": "Writing file",
+  "Edit": "Editing file",
+  "Grep": "Searching code",
+  "Glob": "Finding files",
+  "Bash": "Running shell command",
+  "TodoWrite": "Updating todo list",
+  "WebFetch": "Fetching web page",
+  "WebSearch": "Searching the web",
+};
+
+function humanizeToolName(raw) {
+  if (!raw) return "Unknown tool";
+  let name = String(raw);
+  // delegate.to_<role>
+  let m = name.match(/^delegate\.to_(\w+)$/);
+  if (m) {
+    const target = (ROLE_LABELS[m[1]] || m[1].replace(/_/g, " "));
+    return `Delegating to ${target}`;
+  }
+  // mcp__teamforge-<role>__<tool>
+  m = name.match(/^mcp__teamforge-[\w-]+__(\w+)$/);
+  if (m) name = m[1];
+  // namespace.method (e.g. "analytics.usage_check" -> "usage_check")
+  if (name.includes(".")) {
+    const parts = name.split(".");
+    name = parts[parts.length - 1];
+  }
+  if (TOOL_LABEL_MAP[name]) return TOOL_LABEL_MAP[name];
+  // Fallback: snake_case / CamelCase -> Title Case
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/^./, c => c.toUpperCase());
+}
+
 function fmtNum(n) {
   n = Number(n) || 0;
   if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
@@ -943,13 +1046,13 @@ function renderHeader(data) {
       rcEl.textContent = `$${realTotal.toFixed(2)} (${ratio.toFixed(0)}%)`;
       rcEl.style.color = color;
     } else if (rc.pending) {
-      rcEl.textContent = "loadniyor...";
+      rcEl.textContent = "Loading...";
       rcEl.style.color = "#8b949e";
     } else if (rc.error) {
       rcEl.textContent = "API error";
       rcEl.style.color = "#ff7b72";
     } else {
-      rcEl.textContent = "admin key none";
+      rcEl.textContent = "no admin key";
       rcEl.style.color = "#6e7681";
     }
   }
@@ -967,8 +1070,9 @@ async function loadState() {
   try {
     const r = await fetch("/api/state");
     const d = await r.json();
+    if (d.team_roles) applyTeamRoles(d.team_roles);
     renderHeader(d);
-    // History'den panel fill
+    // Replay history into panels
     const hist = d.history || [];
     hist.forEach(handleWsEvent);
     renderCanvas();
@@ -999,13 +1103,17 @@ function handleWsEvent(ev) {
   if (st) {
     if (ev.kind === "enter") { st.status = "working"; st.caller = ev.caller; st.last_at = ev.ts; }
     else if (ev.kind === "exit") { st.status = "idle"; st.last_at = ev.ts; }
-    else if (ev.kind === "text" || ev.kind === "tool") { st.has_history = true; st.last_at = ev.ts; }
+    else if (ev.kind === "text" || ev.kind === "tool" || ev.kind === "user_message") {
+      st.has_history = true; st.last_at = ev.ts;
+    }
     const panel = document.querySelector(`.agent-panel[data-role="${role}"]`);
     if (panel) updatePanelHeader(panel, role);
   }
-  if (ev.kind === "text" || ev.kind === "tool") appendMsgToPanel(role, ev);
+  if (ev.kind === "text" || ev.kind === "tool" || ev.kind === "user_message") {
+    appendMsgToPanel(role, ev);
+  }
   appendToFeed(ev);
-  if (filter === "active" && ev.kind === "enter") renderCanvas();
+  if (filter === "active" && (ev.kind === "enter" || ev.kind === "user_message")) renderCanvas();
 }
 
 function appendMsgToPanel(role, ev) {
@@ -1016,15 +1124,27 @@ function appendMsgToPanel(role, ev) {
   const empty = body.querySelector(".empty-state");
   if (empty) empty.remove();
   const div = document.createElement("div");
-  if (ev.kind === "text") {
+  if (ev.kind === "user_message") {
+    div.className = "msg user-msg";
+    div.style.cssText = "background:#0d2438;border-left:3px solid #58a6ff;color:#79c0ff;padding:6px 10px;border-radius:6px;font-size:12px;";
+    div.innerHTML = `<div style="font-size:10px;color:#79c0ff;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">From you</div>` +
+                    `<div>${renderMarkdown(ev.text || "")}</div>`;
+  } else if (ev.kind === "text") {
     div.className = "msg text";
     div.style.setProperty("--c", ROLE_COLORS[role] || "#58a6ff");
     div.innerHTML = renderMarkdown(ev.text || "");
   } else {
     div.className = "msg tool";
+    const friendly = humanizeToolName(ev.tool || "?");
     const args = ev.args ? JSON.stringify(ev.args, null, 2) : "";
-    div.innerHTML = `<div class="tname">${escHtml(ev.tool || "?")}()</div>` +
-      (args ? `<div class="targs">${escHtml(args.slice(0, 600))}</div>` : "");
+    if (args) {
+      div.innerHTML =
+        `<div class="tname">${escHtml(friendly)}` +
+        ` <span class="targs-toggle" data-toggle="args">show args</span></div>` +
+        `<div class="targs collapsed">${escHtml(args.slice(0, 1500))}</div>`;
+    } else {
+      div.innerHTML = `<div class="tname">${escHtml(friendly)}</div>`;
+    }
   }
   body.appendChild(div);
   body.scrollTop = body.scrollHeight;
@@ -1046,7 +1166,11 @@ function appendToFeed(ev) {
     const snip = (ev.text || "").slice(0, 120).replace(/\n/g, " ");
     div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="text-snippet">${escHtml(snip)}</span>`;
   } else if (ev.kind === "tool") {
-    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="tool-snippet">${escHtml(ev.tool || "?")}()</span>`;
+    const friendly = humanizeToolName(ev.tool || "?");
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:${color}">${role}</span> <span class="tool-snippet">${escHtml(friendly)}</span>`;
+  } else if (ev.kind === "user_message") {
+    const snip = (ev.text || "").slice(0, 140).replace(/\n/g, " ");
+    div.innerHTML = `<span class="ts">${t}</span> <span class="role" style="color:#79c0ff">you</span> <span style="color:#79c0ff;">&rarr; ${escHtml(role)}: </span><span class="text-snippet">${escHtml(snip)}</span>`;
   } else { return; }
   feed.appendChild(div);
   // Trim eski event'lar
@@ -1392,6 +1516,18 @@ applyFeedHidden();
 attachSplitter();
 loadState();
 connectWs();
+
+// Tool args expand/collapse (delegated handler)
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!(t instanceof HTMLElement) || t.dataset.toggle !== "args") return;
+  e.stopPropagation();
+  const targs = t.closest(".msg.tool")?.querySelector(".targs");
+  if (!targs) return;
+  const isCollapsed = targs.classList.contains("collapsed");
+  targs.classList.toggle("collapsed");
+  t.textContent = isCollapsed ? "hide args" : "show args";
+});
 setInterval(() => {
   fetch("/api/state").then(r => r.json()).then(renderHeader).catch(() => {});
 }, 5000);

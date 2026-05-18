@@ -186,9 +186,27 @@ class DashboardServer:
         for a in team.get("agents", []):
             if a.get("status") == "active":
                 active_count[a["role"]] = active_count.get(a["role"], 0) + 1
+        # Load configured roles from config/team.yaml (dynamic, not hardcoded)
+        team_roles_config: dict = {}
+        try:
+            from . import config_loader
+            team_cfg = config_loader.team() or {}
+            team_roles_config = team_cfg.get("roles") or {}
+        except Exception:
+            team_roles_config = {}
+        # Reduce to UI essentials: id -> {label, tier}
+        ui_roles = {}
+        for rid, r in team_roles_config.items():
+            if not isinstance(r, dict): continue
+            label = rid.replace("_", " ").title()
+            ui_roles[rid] = {
+                "label": label,
+                "tier": (r.get("tier") or "worker").lower(),
+            }
         return web.json_response({
             "budget": snap, "real_cost": real_cost,
             "team": active_count,
+            "team_roles": ui_roles,
             "tasks": tasks.get("tasks", []), "briefs": briefs,
             "agent_state": self._agent_state,
             "history": list(self._history),
@@ -207,11 +225,11 @@ class DashboardServer:
         return web.json_response(data)
 
     async def _handle_workspaces(self, request: web.Request) -> web.Response:
-        """Admin key'in gordugu workspaces — debug."""
+        """Workspaces visible to the admin key — for debugging."""
         from . import analytics
         if not analytics.has_admin_key():
             return web.json_response({
-                "error": "ANTHROPIC_ADMIN_API_KEY none",
+                "error": "ANTHROPIC_ADMIN_API_KEY not set",
                 "workspaces": [], "count": 0,
             })
         import asyncio
@@ -223,15 +241,23 @@ class DashboardServer:
         try:
             data = await request.json()
         except Exception:
-            return web.json_response({"ok": False, "error": "json required"}, status=400)
+            return web.json_response({"ok": False, "error": "json body required"}, status=400)
         msg = (data.get("message") or "").strip()
         target = (data.get("target") or "ceo").strip().lower()
         if target not in ("ceo", "cfo"):
             target = "ceo"
         if not msg:
-            return web.json_response({"ok": False, "error": "mesaj empty"}, status=400)
+            return web.json_response({"ok": False, "error": "message cannot be empty"}, status=400)
         await self.chat_queue.put({"message": msg, "target": target})
         log.info("Browser -> %s: %s", target.upper(), msg[:80])
+        # Echo the user's input into the dashboard feed and the target agent's panel
+        self.emit({
+            "kind": "user_message",
+            "role": target,
+            "caller": "user",
+            "text": msg,
+            "ts": time.time(),
+        })
         return web.json_response({"ok": True, "queued": True, "target": target})
 
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
